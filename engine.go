@@ -326,7 +326,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 	moveList := board.GenerateLegalMoves()
 
 	if depth == 0 || len(moveList) == 0 {
-		return evalBoard(board), 0, []dt.Move{} // kurwa co
+		return evalBoard(board, moveList), 0, []dt.Move{} // kurwa co
 	}
 
 	vMax := MINVALUE
@@ -372,9 +372,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 
 }
 
-func evalBoard(board *dt.Board) int {
-	if board.OurKingInCheck() && len(board.GenerateLegalMoves()) == 0 {
-		return MINVALUE
+func evalBoard(board *dt.Board, moveList []dt.Move) int {
+	if board.OurKingInCheck() {
+		if moveList != nil && len(moveList) == 0 {
+			return MINVALUE
+		}
 	}
 	v := 0
 

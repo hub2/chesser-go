@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "RpqROt/MrRTO71osOof+1Uh2PkQ=",
+			"path": "github.com/dylhunn/dragontoothmg",
+			"revision": "b0146de1e275d419ae46e1f36d3cec255d5a2a7b",
+			"revisionTime": "2017-09-05T20:18:39Z"
+		}
+	],
+	"rootPath": "chesser-go"
+}
