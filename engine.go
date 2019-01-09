@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/bits"
+	"sort"
 	"time"
 
 	dt "github.com/dylhunn/dragontoothmg"
@@ -183,11 +185,54 @@ func init() {
 var isEndgame = false
 var nodes int = 0
 
+type transpositionFlag int
+
+const (
+	// EXACT value from search
+	EXACT transpositionFlag = iota
+	// LOWERBOUND alpha from search
+	LOWERBOUND
+	// UPPERBOUND beta from search
+	UPPERBOUND
+)
+
+type transpositionEntry struct {
+	value int
+	depth int
+	move  dt.Move
+	flag  transpositionFlag
+}
+
+type transpositionMapping map[uint64]transpositionEntry
+
+var transpositionTable transpositionMapping
+
+var errNoTranspositionEntry = errors.New("No entry")
+var hashMoveTable []dt.Move
+
+func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
+	h := board.Hash()
+	t[h] = trEntry
+}
+
+func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
+	h := board.Hash()
+	entry, ok := t[h]
+
+	if !ok {
+		return transpositionEntry{}, errNoTranspositionEntry
+	}
+	return entry, nil
+}
+
 func search(board *dt.Board, depth int) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
 	nodes = 0
 	valf := 0.0
+	transpositionTable = make(transpositionMapping, 5000000)
+	hashMoveTable = make([]dt.Move, 512)
+
 	for i := 1; i < depth; i++ {
 		t := time.Now()
 		val, _, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32)
@@ -196,7 +241,12 @@ func search(board *dt.Board, depth int) {
 		valf = float64(val) / 100.0
 		pv := reverseMove(tpv)
 		outMoves := ""
-		for _, mv := range pv {
+		halfMove := 0
+		if board.Wtomove == false {
+			halfMove = 1
+		}
+		for i, mv := range pv {
+			hashMoveTable[int(board.Fullmoveno)+i+halfMove] = mv
 			outMoves += mv.String() + " "
 		}
 		fmt.Printf("depth %d val %.2f time %v nodes %d\n", i, valf, timeElapsed, nodes)
@@ -204,8 +254,75 @@ func search(board *dt.Board, depth int) {
 	}
 }
 
+type moveValue struct {
+	val  int
+	move dt.Move
+}
+
+func getMoveValue(move dt.Move, board *dt.Board) int {
+	halfMove := 0
+	if board.Wtomove == false {
+		halfMove = 1
+	}
+
+	if hashMoveTable[int(board.Fullmoveno)+halfMove] == move {
+		return MAXVALUE
+	}
+	if dt.IsCapture(move, board) {
+		return 10
+	}
+	return 1
+}
+func sortMoves(moveList []dt.Move, board *dt.Board) {
+	tuples := make([]moveValue, len(moveList))
+
+	for i, mv := range moveList {
+		val := getMoveValue(mv, board)
+		tuples[i] = moveValue{val: val, move: mv}
+	}
+
+	sort.Slice(tuples, func(i, j int) bool { // czy i < j
+		return tuples[i].val > tuples[j].val
+	})
+
+	for i := range moveList {
+		moveList[i] = tuples[i].move
+	}
+}
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Move) {
 	nodes++
+	alphaOriginal := alpha
+
+	trEntry, err := transpositionTable.get(board)
+	if err == nil && trEntry.depth >= depth {
+		unApply := board.Apply(trEntry.move)
+		switch trEntry.flag {
+		case EXACT:
+			unApply()
+			return trEntry.value, trEntry.move, []dt.Move{}
+		case LOWERBOUND:
+			alpha = max(alpha, trEntry.value)
+		case UPPERBOUND:
+			beta = min(beta, trEntry.value)
+		}
+		unApply()
+		if alpha >= beta {
+			return trEntry.value, trEntry.move, []dt.Move{}
+		}
+	}
+
 	moveList := board.GenerateLegalMoves()
 
 	if depth == 0 || len(moveList) == 0 {
@@ -215,6 +332,8 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 	vMax := MINVALUE
 	var bestMove dt.Move
 	var tpv []dt.Move
+
+	sortMoves(moveList, board)
 
 	for _, currMove := range moveList {
 		unapplyFunc := board.Apply(currMove)
@@ -236,6 +355,18 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 			break
 		}
 	}
+
+	trEntry.value = vMax
+	trEntry.move = bestMove
+	trEntry.depth = depth
+	if vMax <= alphaOriginal {
+		trEntry.flag = UPPERBOUND
+	} else if vMax >= beta {
+		trEntry.flag = LOWERBOUND
+	} else {
+		trEntry.flag = EXACT
+	}
+	transpositionTable.put(board, trEntry)
 
 	return vMax, bestMove, tpv
 

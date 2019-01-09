@@ -7,7 +7,7 @@ import (
 func main() {
 	board := dragontoothmg.ParseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
-	search(&board, 8)
+	search(&board, 10)
 
 	// moveList := board.GenerateLegalMoves()
 	// // For every legal move
