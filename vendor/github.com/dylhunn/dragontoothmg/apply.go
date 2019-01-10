@@ -1,5 +1,137 @@
 package dragontoothmg
 
+// ApplyNoGoingBackBadHash, like apply but you cant go back
+// Returns board that have improper hash and shouldnt be used for storing anything
+func (b *Board) ApplyNoGoingBackBadHash(m Move) {
+	// Configure data about which pieces move
+	var ourBitboardPtr, oppBitboardPtr *Bitboards
+	var epDelta int8                                // add this to the e.p. square to find the captured pawn
+	var oppStartingRankBb, ourStartingRankBb uint64 // the starting rank of out opponent's major pieces
+	// the constant that represents the index into pieceSquareZobristC for the pawn of our color
+	if b.Wtomove {
+		ourBitboardPtr = &(b.White)
+		oppBitboardPtr = &(b.Black)
+		epDelta = -8
+		oppStartingRankBb = onlyRank[7]
+		ourStartingRankBb = onlyRank[0]
+	} else {
+		ourBitboardPtr = &(b.Black)
+		oppBitboardPtr = &(b.White)
+		epDelta = 8
+		oppStartingRankBb = onlyRank[0]
+		ourStartingRankBb = onlyRank[7]
+		b.Fullmoveno++ // increment after black's move
+	}
+	fromBitboard := (uint64(1) << m.From())
+	toBitboard := (uint64(1) << m.To())
+	pieceType, pieceTypeBitboard := determinePieceType(ourBitboardPtr, fromBitboard)
+	castleStatus := 0
+	var oldRookLoc, newRookLoc uint8
+
+	// If it is any kind of capture or pawn move, reset halfmove clock.
+	if IsCapture(m, b) || pieceType == Pawn {
+		b.Halfmoveclock = 0 // reset halfmove clock
+	} else {
+		b.Halfmoveclock++
+	}
+
+	// King moves strip castling rights
+	if pieceType == King {
+		// TODO(dylhunn): do this without a branch
+		if m.To()-m.From() == 2 { // castle short
+			castleStatus = 1
+			oldRookLoc = m.To() + 1
+			newRookLoc = m.To() - 1
+		} else if int(m.To())-int(m.From()) == -2 { // castle long
+			castleStatus = -1
+			oldRookLoc = m.To() - 2
+			newRookLoc = m.To() + 1
+		}
+		// King moves always strip castling rights
+		if b.canCastleKingside() {
+			b.flipKingsideCastle()
+		}
+		if b.canCastleQueenside() {
+			b.flipQueensideCastle()
+		}
+	}
+
+	// Rook moves strip castling rights
+	if pieceType == Rook {
+		if b.canCastleKingside() && (fromBitboard&onlyFile[7] != 0) &&
+			fromBitboard&ourStartingRankBb != 0 { // king's rook
+			b.flipKingsideCastle()
+		} else if b.canCastleQueenside() && (fromBitboard&onlyFile[0] != 0) &&
+			fromBitboard&ourStartingRankBb != 0 { // queen's rook
+			b.flipQueensideCastle()
+		}
+	}
+
+	// Apply the castling rook movement
+	if castleStatus != 0 {
+		ourBitboardPtr.Rooks |= (uint64(1) << newRookLoc)
+		ourBitboardPtr.All |= (uint64(1) << newRookLoc)
+		ourBitboardPtr.Rooks &= ^(uint64(1) << oldRookLoc)
+		ourBitboardPtr.All &= ^(uint64(1) << oldRookLoc)
+		// Update rook location in hash
+		// (Rook - 1) assumes that "Nothing" precedes "Rook" in the Piece constants list
+	}
+
+	// Is this an e.p. capture? Strip the opponent pawn and reset the e.p. square
+	oldEpCaptureSquare := b.enpassant
+	if pieceType == Pawn && m.To() == oldEpCaptureSquare && oldEpCaptureSquare != 0 {
+		epOpponentPawnLocation := uint8(int8(oldEpCaptureSquare) + epDelta)
+		oppBitboardPtr.Pawns &= ^(uint64(1) << epOpponentPawnLocation)
+		oppBitboardPtr.All &= ^(uint64(1) << epOpponentPawnLocation)
+		// Remove the opponent pawn from the board hash.
+	}
+	// Update the en passant square
+	if pieceType == Pawn && (int8(m.To())+2*epDelta == int8(m.From())) { // pawn double push
+		b.enpassant = uint8(int8(m.To()) + epDelta)
+	} else {
+		b.enpassant = 0
+	}
+
+	// Is this a promotion?
+	var destTypeBitboard *uint64
+	switch m.Promote() {
+	case Queen:
+		destTypeBitboard = &(ourBitboardPtr.Queens)
+	case Knight:
+		destTypeBitboard = &(ourBitboardPtr.Knights)
+	case Rook:
+		destTypeBitboard = &(ourBitboardPtr.Rooks)
+	case Bishop:
+		destTypeBitboard = &(ourBitboardPtr.Bishops)
+	default:
+		destTypeBitboard = pieceTypeBitboard
+	}
+
+	// Apply the move
+	capturedPieceType, capturedBitboard := determinePieceType(oppBitboardPtr, toBitboard)
+	ourBitboardPtr.All &= ^fromBitboard // remove at "from"
+	ourBitboardPtr.All |= toBitboard    // add at "to"
+	*pieceTypeBitboard &= ^fromBitboard // remove at "from"
+	*destTypeBitboard |= toBitboard     // add at "to"
+	if capturedPieceType != Nothing {   // This does not account for e.p. captures
+		*capturedBitboard &= ^toBitboard
+		oppBitboardPtr.All &= ^toBitboard
+	}
+
+	// If a rook was captured, it strips castling rights
+	if capturedPieceType == Rook {
+		if m.To()%8 == 7 && toBitboard&oppStartingRankBb != 0 && b.oppCanCastleKingside() { // captured king rook
+			b.flipOppKingsideCastle()
+		} else if m.To()%8 == 0 && toBitboard&oppStartingRankBb != 0 && b.oppCanCastleQueenside() { // queen rooks
+			b.flipOppQueensideCastle()
+		}
+	}
+	// flip the side to move in the hash
+	b.Wtomove = !b.Wtomove
+
+	// remove the old en passant square from the hash, and add the new one
+}
+
 // Applies a move to the board, and returns a function that can be used to unapply it.
 // This function assumes that the given move is valid (i.e., is in the set of moves found by GenerateLegalMoves()).
 // If the move is not valid, this function has undefined behavior.

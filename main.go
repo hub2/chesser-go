@@ -72,7 +72,7 @@ mainloop:
 			}
 		}
 		if strings.HasPrefix(input, "go") {
-			depth := 9
+			depth := 11
 			//movetime := -1
 			params := strings.Split(input, " ")
 			if len(params) > 1 {

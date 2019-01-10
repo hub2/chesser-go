@@ -20,7 +20,7 @@ const LMR_LIMIT = 6
 var pieceTypesnoking []int
 var pieceTypes []int
 
-var pieceAttackUnits map[int]int
+var pieceAttackUnits []int
 var kingSafety []int
 
 var pawns []int
@@ -47,8 +47,8 @@ var kingMiddlegameBlack []int
 var kingEndgame []int
 var kingEndgameBlack []int
 
-var pieceVal map[dt.Piece]int
-var attackSquareVal map[dt.Piece]int
+var pieceVal []int
+var attackSquareVal []int
 
 func reverse(array []int) []int {
 	newArray := make([]int, len(array))
@@ -70,13 +70,7 @@ func init() {
 	pieceTypesnoking = []int{dt.Pawn, dt.Knight, dt.Bishop, dt.Rook, dt.Queen}
 	pieceTypes = append(pieceTypesnoking, dt.King)
 
-	pieceAttackUnits = map[int]int{
-		dt.Knight: 2,
-		dt.Bishop: 2,
-		dt.Queen:  5,
-		dt.Rook:   3,
-		dt.Pawn:   1,
-		dt.King:   0}
+	pieceAttackUnits = []int{0, 2, 2, 5, 3, 1, 0}
 
 	kingSafety = []int{
 		0, 0, 1, 2, 3, 5, 7, 9, 12, 15,
@@ -168,26 +162,14 @@ func init() {
 
 	kingEndgameBlack = reverse(kingEndgame)
 
-	pieceVal = map[dt.Piece]int{
-		dt.Pawn:   100,
-		dt.Knight: 320,
-		dt.Bishop: 330,
-		dt.Rook:   500,
-		dt.Queen:  935,
-		dt.King:   0}
+	pieceVal = []int{0, 100, 320, 330, 500, 935, 0}
 
-	attackSquareVal = map[dt.Piece]int{
-		dt.Pawn:   1,
-		dt.Knight: 4,
-		dt.Bishop: 2,
-		dt.Rook:   2,
-		dt.Queen:  2,
-		dt.King:   0}
-
+	attackSquareVal = []int{0, 1, 4, 2, 2, 2, 0}
 }
 
 var isEndgame = false
 var nodes int = 0
+var deepestQuiescence int = 0
 
 type transpositionFlag int
 
@@ -243,6 +225,7 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 	var bestMove dt.Move
 
 	for i := 1; i < depth; i++ {
+		deepestQuiescence = 0
 		t := time.Now()
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
@@ -265,7 +248,7 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 			outMoves += mv.String() + " "
 		}
 		fmt.Printf("info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
-		fmt.Fprintf(os.Stderr, "info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Fprintf(os.Stderr, "info depth %d/%d score %.2f time %d nodes %d\n", i, depth-deepestQuiescence, valf, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintln(os.Stderr, outMoves)
 		//fmt.Println(outMoves)
 	}
@@ -296,6 +279,9 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	return 0
 }
 func isInteresting(move dt.Move, board *dt.Board) bool {
+	if board.OurKingInCheck() {
+		return true
+	}
 	unApply := board.Apply(move)
 	if board.OurKingInCheck() {
 		unApply()
@@ -344,7 +330,7 @@ func isValidMove(move dt.Move, moveList []dt.Move) bool {
 }
 
 func pickReduction(remainingDepth int, moveCount int) int {
-	if maxDepth-remainingDepth > 4 {
+	if maxDepth-remainingDepth > 4 { // if we are at depth >=5
 		if moveCount > 20 {
 			return (4 * remainingDepth) / 5
 		}
@@ -452,17 +438,11 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	}
 	v := 0
 
-	v += bits.OnesCount64(board.White.Pawns) * pieceVal[dt.Pawn]
-	v += bits.OnesCount64(board.White.Bishops) * pieceVal[dt.Bishop]
-	v += bits.OnesCount64(board.White.Knights) * pieceVal[dt.Knight]
-	v += bits.OnesCount64(board.White.Rooks) * pieceVal[dt.Rook]
-	v += bits.OnesCount64(board.White.Queens) * pieceVal[dt.Queen]
-
-	v -= bits.OnesCount64(board.Black.Pawns) * pieceVal[dt.Pawn]
-	v -= bits.OnesCount64(board.Black.Bishops) * pieceVal[dt.Bishop]
-	v -= bits.OnesCount64(board.Black.Knights) * pieceVal[dt.Knight]
-	v -= bits.OnesCount64(board.Black.Rooks) * pieceVal[dt.Rook]
-	v -= bits.OnesCount64(board.Black.Queens) * pieceVal[dt.Queen]
+	v += (bits.OnesCount64(board.White.Pawns) - bits.OnesCount64(board.Black.Pawns)) * pieceVal[dt.Pawn]
+	v += (bits.OnesCount64(board.White.Knights) - bits.OnesCount64(board.Black.Knights)) * pieceVal[dt.Knight]
+	v += (bits.OnesCount64(board.White.Bishops) - bits.OnesCount64(board.Black.Bishops)) * pieceVal[dt.Bishop]
+	v += (bits.OnesCount64(board.White.Rooks) - bits.OnesCount64(board.Black.Rooks)) * pieceVal[dt.Rook]
+	v += (bits.OnesCount64(board.White.Queens) - bits.OnesCount64(board.Black.Queens)) * pieceVal[dt.Queen]
 
 	tmp := board.White.Pawns
 	for tmp != 0 {
@@ -590,7 +570,7 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 
 	// Create copy of the board instead of unapplying everything in sequence
 	boardCopy := *board
-	board.Apply(move)
+	board.ApplyNoGoingBackBadHash(move)
 
 	swaplist := make([]int, 0, 10)
 	swaplist = append(swaplist, theirVal)
@@ -616,7 +596,7 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 		} else {
 			candidateMove.Setpromote(dt.Nothing)
 		}
-		board.Apply(candidateMove)
+		board.ApplyNoGoingBackBadHash(candidateMove)
 		swapCount++
 
 		swaplist = append(swaplist, swaplist[len(swaplist)-1]+lastVal)
@@ -644,9 +624,10 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 
 }
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+	deepestQuiescence = min(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
 	var val int
-	var unApplyFunc func()
+	//var unApplyFunc func()
 	var bestTpv []dt.Move
 	var bestMove dt.Move
 
@@ -681,18 +662,19 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	for pq.Len() > 0 {
 		nodes++
 		mvP := heap.Pop(&pq).(*moveValPair)
-		unApplyFunc = board.Apply(mvP.move)
+		copyBoard := *board
+		board.ApplyNoGoingBackBadHash(mvP.move)
 
 		if !isCheck {
 			if board.OurKingInCheck() {
-				unApplyFunc()
+				*board = copyBoard
 				continue
 			}
 		}
 
 		val, _, tpv := quiescenceSearch(board, -beta, -alpha, depth-1)
 		val = -val
-		unApplyFunc()
+		*board = copyBoard
 
 		if val >= beta {
 			return beta, mvP.move, append(tpv, mvP.move)
