@@ -238,7 +238,9 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 
 	for i := 1; i < depth; i++ {
 		t := time.Now()
-		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32)
+		moveList := board.GenerateLegalMoves()
+
+		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		bestMove = bmv
 
 		timeElapsed := time.Since(t)
@@ -309,12 +311,21 @@ func min(a, b int) int {
 	}
 	return b
 }
-func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Move) {
+
+func isValidMove(move dt.Move, moveList []dt.Move) bool {
+	for _, mv := range moveList {
+		if move == mv {
+			return true
+		}
+	}
+	return false
+}
+
+func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
 	nodes++
 	alphaOriginal := alpha
-
 	trEntry, err := transpositionTable.get(board)
-	if err == nil && trEntry.depth >= depth {
+	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
 		unApply := board.Apply(trEntry.move) // TODO: FIX: XXX: czasem kolizja here
 		switch trEntry.flag {
 		case EXACT:
@@ -331,8 +342,6 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 		}
 	}
 
-	moveList := board.GenerateLegalMoves()
-
 	if depth == 0 || len(moveList) == 0 {
 		return evalBoard(board, moveList), 0, []dt.Move{} // kurwa co
 	}
@@ -343,11 +352,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 	var bestTtpv []dt.Move
 
 	sortMoves(moveList, board)
-
 	for _, currMove := range moveList {
 		unapplyFunc := board.Apply(currMove)
 
-		v, _, ttpv := negaMax(board, depth-1, -beta, -alpha)
+		moveList := board.GenerateLegalMoves()
+		v, _, ttpv := negaMax(board, depth-1, -beta, -alpha, moveList)
 		v = -v
 
 		v = max(alpha, v)
