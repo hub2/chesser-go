@@ -32,7 +32,7 @@ func BenchmarkSearchDepth7(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, board := range boards {
-			search(&board, 7)
+			search(&board, 7, -1)
 		}
 	}
 }
@@ -61,5 +61,5 @@ func BenchmarkSearchDepth10(b *testing.B) {
 	}
 	b.Log(fens[5])
 	b.ResetTimer()
-	search(&boards[5], 10)
+	search(&boards[5], 10, -1)
 }

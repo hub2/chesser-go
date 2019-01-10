@@ -73,7 +73,7 @@ mainloop:
 		}
 		if strings.HasPrefix(input, "go") {
 			depth := 11
-			//movetime := -1
+			movetime := -1
 			params := strings.Split(input, " ")
 			if len(params) > 1 {
 				i := 0
@@ -85,12 +85,12 @@ mainloop:
 					}
 					if param == "movetime" {
 						i++
-						_, _ = strconv.Atoi(params[i])
+						movetime, _ = strconv.Atoi(params[i])
 					}
 					i++
 				}
 			}
-			_, move := search(&board, depth)
+			_, move := search(&board, depth, movetime)
 			fmt.Printf("bestmove %s\n", move.String())
 			fmt.Fprintf(os.Stderr, "bestmove %s\n", move.String())
 		}

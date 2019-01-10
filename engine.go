@@ -85,7 +85,7 @@ func init() {
 		500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 	}
 
-	pawns = []int{0, 0, 0, 0, 0, 0, 0, 0,
+	pawnsBlack = []int{0, 0, 0, 0, 0, 0, 0, 0,
 		50, 50, 50, 50, 50, 50, 50, 50,
 		10, 10, 20, 30, 30, 20, 10, 10,
 		5, 5, 10, 25, 25, 10, 5, 5,
@@ -94,9 +94,9 @@ func init() {
 		5, 10, 10, -20, -20, 10, 10, 5,
 		0, 0, 0, 0, 0, 0, 0, 0}
 
-	pawnsBlack = reverse(pawns)
+	pawns = reverse(pawnsBlack)
 
-	knights = []int{-50, -40, -30, -30, -30, -30, -40, -50,
+	knightsBlack = []int{-50, -40, -30, -30, -30, -30, -40, -50,
 		-40, -20, 0, 0, 0, 0, -20, -40,
 		-30, 0, 10, 15, 15, 10, 0, -30,
 		-30, 5, 15, 20, 20, 15, 5, -30,
@@ -105,9 +105,9 @@ func init() {
 		-40, -20, 0, 5, 5, 0, -20, -40,
 		-50, -40, -30, -30, -30, -30, -40, -50}
 
-	knightsBlack = reverse(knights)
+	knights = reverse(knightsBlack)
 
-	bishops = []int{-20, -10, -10, -10, -10, -10, -10, -20,
+	bishopsBlack = []int{-20, -10, -10, -10, -10, -10, -10, -20,
 		-10, 0, 0, 0, 0, 0, 0, -10,
 		-10, 0, 5, 10, 10, 5, 0, -10,
 		-10, 5, 5, 10, 10, 5, 5, -10,
@@ -116,9 +116,9 @@ func init() {
 		-10, 5, 0, 0, 0, 0, 5, -10,
 		-20, -10, -10, -10, -10, -10, -10, -20}
 
-	bishopsBlack = reverse(bishops)
+	bishops = reverse(bishopsBlack)
 
-	rooks = []int{0, 0, 0, 0, 0, 0, 0, 0,
+	rooksBlack = []int{0, 0, 0, 0, 0, 0, 0, 0,
 		5, 10, 10, 10, 10, 10, 10, 5,
 		-5, 0, 0, 0, 0, 0, 0, -5,
 		-5, 0, 0, 0, 0, 0, 0, -5,
@@ -127,9 +127,9 @@ func init() {
 		-5, 0, 0, 0, 0, 0, 0, -5,
 		0, 0, 0, 5, 5, 0, 0, 0}
 
-	rooksBlack = reverse(rooks)
+	rooks = reverse(rooksBlack)
 
-	queens = []int{-20, -10, -10, -5, -5, -10, -10, -20,
+	queensBlack = []int{-20, -10, -10, -5, -5, -10, -10, -20,
 		-10, 0, 0, 0, 0, 0, 0, -10,
 		-10, 0, 5, 5, 5, 5, 0, -10,
 		-5, 0, 5, 5, 5, 5, 0, -5,
@@ -138,9 +138,9 @@ func init() {
 		-10, 0, 5, 0, 0, 0, 0, -10,
 		-20, -10, -10, -5, -5, -10, -10, -20}
 
-	queensBlack = reverse(queens)
+	queens = reverse(queensBlack)
 
-	kingMiddlegame = []int{-30, -40, -40, -50, -50, -40, -40, -30,
+	kingMiddlegameBlack = []int{-30, -40, -40, -50, -50, -40, -40, -30,
 		-30, -40, -40, -50, -50, -40, -40, -30,
 		-30, -40, -40, -50, -50, -40, -40, -30,
 		-30, -40, -40, -50, -50, -40, -40, -30,
@@ -149,9 +149,9 @@ func init() {
 		20, 20, 0, 0, 0, 0, 20, 20,
 		20, 30, 10, 0, 0, 10, 30, 20}
 
-	kingMiddlegameBlack = reverse(kingMiddlegame)
+	kingMiddlegame = reverse(kingMiddlegameBlack)
 
-	kingEndgame = []int{-50, -40, -30, -20, -20, -30, -40, -50,
+	kingEndgameBlack = []int{-50, -40, -30, -20, -20, -30, -40, -50,
 		-30, -20, -10, 0, 0, -10, -20, -30,
 		-30, -10, 20, 30, 30, 20, -10, -30,
 		-30, -10, 30, 40, 40, 30, -10, -30,
@@ -160,16 +160,20 @@ func init() {
 		-30, -30, 0, 0, 0, 0, -30, -30,
 		-50, -30, -30, -30, -30, -30, -30, -50}
 
-	kingEndgameBlack = reverse(kingEndgame)
+	kingEndgame = reverse(kingEndgameBlack)
 
 	pieceVal = []int{0, 100, 320, 330, 500, 935, 0}
 
 	attackSquareVal = []int{0, 1, 4, 2, 2, 2, 0}
 }
 
+var TIMECHECK_FREQ int = 5000
 var isEndgame = false
-var nodes int = 0
-var deepestQuiescence int = 0
+var nodes int
+var deepestQuiescence int
+var timeCheckCounter = TIMECHECK_FREQ
+var endTime = time.Now().AddDate(1000, 10, 10)
+var searching = true
 
 type transpositionFlag int
 
@@ -195,6 +199,8 @@ var transpositionTable transpositionMapping
 
 var errNoTranspositionEntry = errors.New("No entry")
 var hashMoveTable []dt.Move
+var killerOneTable []dt.Move
+var killerTwoTable []dt.Move
 
 func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
@@ -213,14 +219,19 @@ func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 
 var maxDepth int
 
-func search(board *dt.Board, depth int) (float64, dt.Move) {
+func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
 	nodes = 0
 	valf := 0.0
 	transpositionTable = make(transpositionMapping, 5000000)
 	hashMoveTable = make([]dt.Move, 512)
+	killerOneTable = make([]dt.Move, 512)
+	killerTwoTable = make([]dt.Move, 512)
 	maxDepth = depth
+	if movetime != -1 {
+		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
+	}
 
 	var bestMove dt.Move
 
@@ -239,12 +250,8 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 		valf = float64(val) / 100.0
 		pv := reverseMove(tpv)
 		outMoves := ""
-		halfMove := 0
-		if board.Wtomove == false {
-			halfMove = 1
-		}
 		for i, mv := range pv {
-			hashMoveTable[int(board.Fullmoveno)+i+halfMove] = mv
+			hashMoveTable[getHalfMoveCount(board)+i] = mv
 			outMoves += mv.String() + " "
 		}
 		fmt.Printf("info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
@@ -254,19 +261,29 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 	}
 	return valf, bestMove
 }
+func addKiller(move dt.Move, depth int) {
+	if killerOneTable[depth] == 0 {
+		killerOneTable[depth] = move
+	} else if move != killerOneTable[depth] {
+		killerTwoTable[depth] = move
+	}
+}
 
 type moveValue struct {
 	val  int
 	move dt.Move
 }
 
-func getMoveValue(move dt.Move, board *dt.Board) int {
+func getHalfMoveCount(board *dt.Board) int {
 	halfMove := 0
 	if board.Wtomove == false {
 		halfMove = 1
 	}
+	return int(board.Fullmoveno) + halfMove
+}
+func getMoveValue(move dt.Move, board *dt.Board) int {
 
-	if hashMoveTable[int(board.Fullmoveno)+halfMove] == move {
+	if hashMoveTable[getHalfMoveCount(board)] == move {
 		return MAXVALUE
 	}
 	if dt.IsCapture(move, board) {
@@ -275,6 +292,12 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	piece := move.Promote()
 	if piece != dt.Nothing {
 		return pieceVal[dt.Pawn] - pieceVal[piece] + 500
+	}
+	if killerOneTable[getHalfMoveCount(board)] == move {
+		return 10
+	}
+	if killerTwoTable[getHalfMoveCount(board)] == move {
+		return 8
 	}
 	return 0
 }
@@ -348,7 +371,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
-		unApply := board.Apply(trEntry.move) // TODO: FIX: XXX: czasem kolizja here
+		unApply := board.Apply(trEntry.move)
 		switch trEntry.flag {
 		case EXACT:
 			unApply()
@@ -364,6 +387,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		}
 	}
 
+	updateTimer()
+	if !searching {
+		return -evalBoard(board, nil), 0, []dt.Move{}
+	}
+
 	if depth == 0 || len(moveList) == 0 {
 		val, move, tpv := quiescenceSearch(board, alpha, beta, depth)
 		return val, move, tpv
@@ -375,19 +403,16 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	var bestTtpv []dt.Move
 	var v int
 	var ttpv []dt.Move
-	var unapplyFunc func()
 
 	sortMoves(moveList, board)
 	for moveCount, currMove := range moveList {
-		if isInteresting(currMove, board) {
-			unapplyFunc = board.Apply(currMove)
-			moveList := board.GenerateLegalMoves()
+		boardCopy := *board
+		board.Apply(currMove)
+		moveList := board.GenerateLegalMoves()
 
+		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy) {
 			v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
 		} else {
-			unapplyFunc = board.Apply(currMove)
-			moveList := board.GenerateLegalMoves()
-
 			R := pickReduction(depth, moveCount)
 			v, _, ttpv = negaMax(board, depth-1-R, -beta, -alpha, moveList)
 			if -v > alpha {
@@ -405,13 +430,12 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 			bestMove = currMove
 			bestTtpv = ttpv
 		}
-		unapplyFunc()
+		*board = boardCopy
 
 		if alpha >= beta {
 			break
 		}
 	}
-
 	tpv = append(bestTtpv, bestMove)
 
 	trEntry.value = vMax
@@ -421,6 +445,9 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		trEntry.flag = UPPERBOUND
 	} else if vMax >= beta {
 		trEntry.flag = LOWERBOUND
+		if !dt.IsCapture(bestMove, board) && bestMove.Promote() == dt.Nothing {
+			addKiller(bestMove, getHalfMoveCount(board))
+		}
 	} else {
 		trEntry.flag = EXACT
 	}
@@ -447,70 +474,70 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	tmp := board.White.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += pawns[63-idx]
+		v += pawns[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= pawnsBlack[63-idx]
+		v -= pawnsBlack[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Bishops
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += bishops[63-idx]
+		v += bishops[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Bishops
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= bishopsBlack[63-idx]
+		v -= bishopsBlack[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Knights
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += knights[63-idx]
+		v += knights[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Knights
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= knightsBlack[63-idx]
+		v -= knightsBlack[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Rooks
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += rooks[63-idx]
+		v += rooks[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Rooks
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= rooksBlack[63-idx]
+		v -= rooksBlack[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Queens
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += queens[63-idx]
+		v += queens[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Queens
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= queensBlack[63-idx]
+		v -= queensBlack[idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -521,11 +548,11 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	blackKingIdx := bits.TrailingZeros64(blackKing)
 
 	if isEndgame {
-		v += kingEndgame[63-whiteKingIdx]
-		v -= kingEndgameBlack[63-blackKingIdx]
+		v += kingEndgame[whiteKingIdx]
+		v -= kingEndgameBlack[blackKingIdx]
 	} else {
-		v += kingMiddlegame[63-whiteKingIdx]
-		v -= kingMiddlegameBlack[63-blackKingIdx]
+		v += kingMiddlegame[whiteKingIdx]
+		v -= kingMiddlegameBlack[blackKingIdx]
 	}
 	return v * getColorMutliplier(board.Wtomove)
 
@@ -623,7 +650,20 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 	}
 
 }
+func updateTimer() {
+	timeCheckCounter--
+	if timeCheckCounter == 0 {
+		if time.Now().After(endTime) {
+			searching = false
+		}
+		timeCheckCounter = TIMECHECK_FREQ
+	}
+}
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+	updateTimer()
+	if !searching {
+		return -evalBoard(board, nil), 0, []dt.Move{}
+	}
 	deepestQuiescence = min(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
 	var val int
@@ -640,7 +680,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 			alpha = val
 		}
 	}
-	pq := make(PriorityQueue, 0, 20)
+	pq := make(PriorityQueue, 0, 40)
 	heap.Init(&pq)
 
 	moves := board.GenerateLegalMoves()
