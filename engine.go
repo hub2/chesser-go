@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"errors"
 	"fmt"
 	"math"
@@ -46,8 +47,8 @@ var kingMiddlegameBlack []int
 var kingEndgame []int
 var kingEndgameBlack []int
 
-var pieceVal map[int]int
-var attackSquareVal map[int]int
+var pieceVal map[dt.Piece]int
+var attackSquareVal map[dt.Piece]int
 
 func reverse(array []int) []int {
 	newArray := make([]int, len(array))
@@ -167,7 +168,7 @@ func init() {
 
 	kingEndgameBlack = reverse(kingEndgame)
 
-	pieceVal = map[int]int{
+	pieceVal = map[dt.Piece]int{
 		dt.Pawn:   100,
 		dt.Knight: 320,
 		dt.Bishop: 330,
@@ -175,7 +176,7 @@ func init() {
 		dt.Queen:  935,
 		dt.King:   0}
 
-	attackSquareVal = map[int]int{
+	attackSquareVal = map[dt.Piece]int{
 		dt.Pawn:   1,
 		dt.Knight: 4,
 		dt.Bishop: 2,
@@ -246,6 +247,7 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
+		//fmt.Fprintf(os.Stderr, "depth %d\n", i)
 		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		bestMove = bmv
 
@@ -285,13 +287,13 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 		return MAXVALUE
 	}
 	if dt.IsCapture(move, board) {
-		return 600
+		return getCaptureValue(board, move)
 	}
 	piece := move.Promote()
 	if piece != dt.Nothing {
-		return pieceVal[dt.Pawn] - pieceVal[int(piece)] + 500
+		return pieceVal[dt.Pawn] - pieceVal[piece] + 500
 	}
-	return 1
+	return 0
 }
 func isInteresting(move dt.Move, board *dt.Board) bool {
 	unApply := board.Apply(move)
@@ -300,7 +302,7 @@ func isInteresting(move dt.Move, board *dt.Board) bool {
 		return true
 	}
 	unApply()
-	return getMoveValue(move, board) >= 9
+	return getMoveValue(move, board) > 0
 }
 
 func sortMoves(moveList []dt.Move, board *dt.Board) {
@@ -344,10 +346,10 @@ func isValidMove(move dt.Move, moveList []dt.Move) bool {
 func pickReduction(remainingDepth int, moveCount int) int {
 	if maxDepth-remainingDepth > 4 {
 		if moveCount > 20 {
-			return 4 * remainingDepth / 5
+			return (4 * remainingDepth) / 5
 		}
 		if moveCount > 10 {
-			return 2 * remainingDepth / 3
+			return (2 * remainingDepth) / 3
 		}
 		return remainingDepth / 3
 
@@ -377,7 +379,8 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 
 	if depth == 0 || len(moveList) == 0 {
-		return evalBoard(board, moveList), 0, []dt.Move{} // kurwa co
+		val, move, tpv := quiescenceSearch(board, alpha, beta, depth)
+		return val, move, tpv
 	}
 
 	vMax := MINVALUE
@@ -545,6 +548,166 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v -= kingMiddlegameBlack[63-blackKingIdx]
 	}
 	return v * getColorMutliplier(board.Wtomove)
+
+}
+
+func getCaptureValue(board *dt.Board, move dt.Move) int {
+	var ourBitboard *dt.Bitboards
+	var theirBitboard *dt.Bitboards
+	var theirVal int
+	var candidateMove dt.Move
+	var isTsqLastLine bool
+	ourColor := board.Wtomove
+	fsq := move.From()
+	tsq := move.To()
+
+	fromBitboard := (uint64(1) << fsq)
+	toBitboard := (uint64(1) << tsq)
+
+	if board.Wtomove {
+		ourBitboard = &board.White
+		theirBitboard = &board.Black
+		isTsqLastLine = toBitboard&dt.OnlyRank[7] != 0
+	} else {
+		ourBitboard = &board.Black
+		theirBitboard = &board.White
+		isTsqLastLine = toBitboard&dt.OnlyRank[0] != 0
+	}
+
+	ourPieceType, _ := dt.DeterminePieceType(ourBitboard, fromBitboard)
+	theirPieceType, _ := dt.DeterminePieceType(theirBitboard, toBitboard)
+	ourVal := pieceVal[ourPieceType]
+
+	if theirPieceType == dt.Nothing { // handle en passant -> capture on empty square
+		theirVal = pieceVal[dt.Pawn]
+	} else {
+		theirVal = pieceVal[theirPieceType]
+	}
+
+	if theirVal > ourVal {
+		return theirVal - ourVal
+	}
+
+	// Create copy of the board instead of unapplying everything in sequence
+	boardCopy := *board
+	board.Apply(move)
+
+	swaplist := make([]int, 0, 10)
+	swaplist = append(swaplist, theirVal)
+
+	swapCount := 0
+	lastVal := ourVal
+
+	for {
+		attackers := board.GetAttackersForSquare(!board.Wtomove, tsq)
+		if attackers.All == 0 {
+			break
+		}
+		// We want to capture with lowest valued pieces first
+		attackerPieceType, lowestValueAttackerBitboard := dt.LowestValuePiece(&attackers)
+		lowestValueAttackerSquare := dt.Square(bits.TrailingZeros64(*lowestValueAttackerBitboard)) // 0 = A1 ... 63 - H8
+
+		// Create move to use in capturing
+		candidateMove.Setfrom(lowestValueAttackerSquare)
+		candidateMove.Setto(dt.Square(tsq))
+
+		if attackerPieceType == dt.Pawn && isTsqLastLine { // set promotion if applicable
+			candidateMove.Setpromote(dt.Queen)
+		} else {
+			candidateMove.Setpromote(dt.Nothing)
+		}
+		board.Apply(candidateMove)
+		swapCount++
+
+		swaplist = append(swaplist, swaplist[len(swaplist)-1]+lastVal)
+		lastVal = pieceVal[attackerPieceType] * getColorMutliplier(ourColor == board.Wtomove)
+	}
+	// restore board
+	*board = boardCopy
+
+	for i := len(swaplist) - 1; i > 0; i-- {
+		if i&1 != 0 {
+			if swaplist[i] <= swaplist[i-1] {
+				swaplist[i-1] = swaplist[i]
+			}
+		} else {
+			if swaplist[i] >= swaplist[i-1] {
+				swaplist[i-1] = swaplist[i]
+			}
+		}
+	}
+	if swaplist[0] < 0 {
+		return MINVALUE
+	} else {
+		return swaplist[0]
+	}
+
+}
+func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+	isCheck := board.OurKingInCheck()
+	var val int
+	var unApplyFunc func()
+	var bestTpv []dt.Move
+	var bestMove dt.Move
+
+	if !isCheck {
+		val = evalBoard(board, nil)
+		if val >= beta {
+			return val, 0, []dt.Move{}
+		}
+		if val > alpha {
+			alpha = val
+		}
+	}
+	pq := make(PriorityQueue, 0, 20)
+	heap.Init(&pq)
+
+	moves := board.GenerateLegalMoves()
+	if isCheck {
+		if len(moves) == 0 {
+			return -MAXVALUE, 0, []dt.Move{}
+		}
+		for _, move := range moves {
+			heap.Push(&pq, &moveValPair{val: 0, move: move})
+		}
+	} else {
+		for _, move := range moves {
+			if dt.IsCapture(move, board) {
+				heap.Push(&pq, &moveValPair{val: getCaptureValue(board, move), move: move})
+			}
+		}
+	}
+
+	for pq.Len() > 0 {
+		nodes++
+		mvP := heap.Pop(&pq).(*moveValPair)
+		unApplyFunc = board.Apply(mvP.move)
+
+		if !isCheck {
+			if board.OurKingInCheck() {
+				unApplyFunc()
+				continue
+			}
+		}
+
+		val, _, tpv := quiescenceSearch(board, -beta, -alpha, depth-1)
+		val = -val
+		unApplyFunc()
+
+		if val >= beta {
+			return beta, mvP.move, append(tpv, mvP.move)
+		}
+		if val > alpha {
+			alpha = val
+			bestTpv = tpv
+			bestMove = mvP.move
+		}
+	}
+	if bestTpv != nil {
+		return alpha, bestMove, append(bestTpv, bestMove)
+	} else {
+		return alpha, 0, []dt.Move{}
+	}
 
 }
 

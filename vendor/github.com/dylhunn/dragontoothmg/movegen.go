@@ -585,12 +585,14 @@ func (b *Board) GetAttackersForSquare(byBlack bool, origin uint8) Bitboards {
 		}
 	}
 	pawn_attackers_mask &= opponentPieces.Pawns
-	return Bitboards{Pawns: pawn_attackers_mask,
+	out := Bitboards{Pawns: pawn_attackers_mask,
 		Bishops: bishop_attackers,
 		Knights: knight_attackers,
 		Rooks:   rook_attackers,
 		Queens:  queen_attackers,
-		Kings:   king_attackers}
+		Kings:   king_attackers,
+		All:     pawn_attackers_mask | bishop_attackers | knight_attackers | rook_attackers | queen_attackers | king_attackers}
+	return out
 }
 
 // Compute whether an individual square is under direct attack. Potentially expensive.

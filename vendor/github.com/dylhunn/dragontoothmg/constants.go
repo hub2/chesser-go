@@ -192,6 +192,8 @@ var onlyRank = [8]uint64{
 	0xFF, 0XFF00, 0XFF0000, 0XFF000000,
 	0XFF00000000, 0XFF0000000000, 0XFF000000000000, 0XFF00000000000000}
 
+var OnlyRank = onlyRank
+
 // Masks for attacks
 // In order: knight on A1, B1, C1, ... F8, G8, H8
 var knightMasks = [64]uint64{

@@ -38,7 +38,7 @@ func (b *Board) Apply(m Move) func() {
 
 	// If it is any kind of capture or pawn move, reset halfmove clock.
 	resetHalfmoveClockFrom := -1
-	if IsCapture(m, b) || pieceType == Pawn { 
+	if IsCapture(m, b) || pieceType == Pawn {
 		resetHalfmoveClockFrom = int(b.Halfmoveclock)
 		b.Halfmoveclock = 0 // reset halfmove clock
 	} else {
@@ -239,6 +239,10 @@ func (b *Board) Apply(m Move) func() {
 	return unapply
 }
 
+func DeterminePieceType(ourBitboardPtr *Bitboards, squareMask uint64) (Piece, *uint64) {
+	return determinePieceType(ourBitboardPtr, squareMask)
+}
+
 func determinePieceType(ourBitboardPtr *Bitboards, squareMask uint64) (Piece, *uint64) {
 	var pieceType Piece = Nothing
 	pieceTypeBitboard := &(ourBitboardPtr.All)
@@ -262,4 +266,26 @@ func determinePieceType(ourBitboardPtr *Bitboards, squareMask uint64) (Piece, *u
 		pieceTypeBitboard = &(ourBitboardPtr.Kings)
 	}
 	return pieceType, pieceTypeBitboard
+}
+
+func LowestValuePiece(bitboard *Bitboards) (Piece, *uint64) {
+	if bitboard.Pawns != 0 {
+		return Pawn, &(bitboard.Pawns)
+	}
+	if bitboard.Knights != 0 {
+		return Knight, &(bitboard.Knights)
+	}
+	if bitboard.Bishops != 0 {
+		return Bishop, &(bitboard.Bishops)
+	}
+	if bitboard.Rooks != 0 {
+		return Rook, &(bitboard.Rooks)
+	}
+	if bitboard.Queens != 0 {
+		return Queen, &(bitboard.Queens)
+	}
+	if bitboard.Kings != 0 {
+		return King, &(bitboard.Kings)
+	}
+	return Nothing, &(bitboard.All)
 }
