@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"os"
 	"sort"
 	"time"
 
@@ -164,6 +165,7 @@ func init() {
 		-50, -30, -30, -30, -30, -30, -30, -50}
 
 	kingEndgameBlack = reverse(kingEndgame)
+
 	pieceVal = map[int]int{
 		dt.Pawn:   100,
 		dt.Knight: 320,
@@ -225,17 +227,20 @@ func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	return entry, nil
 }
 
-func search(board *dt.Board, depth int) {
+func search(board *dt.Board, depth int) (float64, dt.Move) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
 	nodes = 0
 	valf := 0.0
 	transpositionTable = make(transpositionMapping, 5000000)
 	hashMoveTable = make([]dt.Move, 512)
+	var bestMove dt.Move
 
 	for i := 1; i < depth; i++ {
 		t := time.Now()
-		val, _, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32)
+		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32)
+		bestMove = bmv
+
 		timeElapsed := time.Since(t)
 
 		valf = float64(val) / 100.0
@@ -249,9 +254,12 @@ func search(board *dt.Board, depth int) {
 			hashMoveTable[int(board.Fullmoveno)+i+halfMove] = mv
 			outMoves += mv.String() + " "
 		}
-		fmt.Printf("depth %d val %.2f time %v nodes %d\n", i, valf, timeElapsed, nodes)
-		fmt.Println(outMoves)
+		fmt.Printf("info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Fprintf(os.Stderr, "info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Fprintln(os.Stderr, outMoves)
+		//fmt.Println(outMoves)
 	}
+	return valf, bestMove
 }
 
 type moveValue struct {
@@ -307,11 +315,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 
 	trEntry, err := transpositionTable.get(board)
 	if err == nil && trEntry.depth >= depth {
-		unApply := board.Apply(trEntry.move)
+		unApply := board.Apply(trEntry.move) // TODO: FIX: XXX: czasem kolizja here
 		switch trEntry.flag {
 		case EXACT:
 			unApply()
-			return trEntry.value, trEntry.move, []dt.Move{}
+			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
 		case LOWERBOUND:
 			alpha = max(alpha, trEntry.value)
 		case UPPERBOUND:
@@ -319,7 +327,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 		}
 		unApply()
 		if alpha >= beta {
-			return trEntry.value, trEntry.move, []dt.Move{}
+			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
 		}
 	}
 
@@ -332,6 +340,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 	vMax := MINVALUE
 	var bestMove dt.Move
 	var tpv []dt.Move
+	var bestTtpv []dt.Move
 
 	sortMoves(moveList, board)
 
@@ -341,13 +350,13 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 		v, _, ttpv := negaMax(board, depth-1, -beta, -alpha)
 		v = -v
 
-		v = int(math.Max(float64(alpha), float64(v)))
+		v = max(alpha, v)
 		alpha = v
 
 		if v > vMax {
 			vMax = v
 			bestMove = currMove
-			tpv = append(ttpv, currMove)
+			bestTtpv = ttpv
 		}
 		unapplyFunc()
 
@@ -355,6 +364,8 @@ func negaMax(board *dt.Board, depth int, alpha, beta int) (int, dt.Move, []dt.Mo
 			break
 		}
 	}
+
+	tpv = append(bestTtpv, bestMove)
 
 	trEntry.value = vMax
 	trEntry.move = bestMove
@@ -386,96 +397,95 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	v += bits.OnesCount64(board.White.Rooks) * pieceVal[dt.Rook]
 	v += bits.OnesCount64(board.White.Queens) * pieceVal[dt.Queen]
 
-	v -= bits.OnesCount64(board.White.Pawns) * pieceVal[dt.Pawn]
-	v -= bits.OnesCount64(board.White.Bishops) * pieceVal[dt.Bishop]
-	v -= bits.OnesCount64(board.White.Knights) * pieceVal[dt.Knight]
-	v -= bits.OnesCount64(board.White.Rooks) * pieceVal[dt.Rook]
-	v -= bits.OnesCount64(board.White.Queens) * pieceVal[dt.Queen]
+	v -= bits.OnesCount64(board.Black.Pawns) * pieceVal[dt.Pawn]
+	v -= bits.OnesCount64(board.Black.Bishops) * pieceVal[dt.Bishop]
+	v -= bits.OnesCount64(board.Black.Knights) * pieceVal[dt.Knight]
+	v -= bits.OnesCount64(board.Black.Rooks) * pieceVal[dt.Rook]
+	v -= bits.OnesCount64(board.Black.Queens) * pieceVal[dt.Queen]
 
 	tmp := board.White.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += pawns[idx]
+		v += pawns[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= pawnsBlack[idx]
+		v -= pawnsBlack[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Bishops
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += bishops[idx]
+		v += bishops[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Bishops
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= bishopsBlack[idx]
+		v -= bishopsBlack[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Knights
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += knights[idx]
+		v += knights[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Knights
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= knightsBlack[idx]
+		v -= knightsBlack[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Rooks
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += rooks[idx]
+		v += rooks[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Rooks
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= rooksBlack[idx]
+		v -= rooksBlack[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.White.Queens
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v += queens[idx]
+		v += queens[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	tmp = board.Black.Queens
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
-		v -= queensBlack[idx]
+		v -= queensBlack[63-idx]
 		tmp &= ^(1 << uint(idx))
 	}
 
 	whiteKing := board.White.Kings
 	whiteKingIdx := bits.TrailingZeros64(whiteKing)
 
-	blackKing := board.White.Kings
+	blackKing := board.Black.Kings
 	blackKingIdx := bits.TrailingZeros64(blackKing)
 
 	if isEndgame {
-		v += kingEndgame[whiteKingIdx]
-		v -= kingEndgameBlack[blackKingIdx]
+		v += kingEndgame[63-whiteKingIdx]
+		v -= kingEndgameBlack[63-blackKingIdx]
 	} else {
-		v += kingMiddlegame[whiteKingIdx]
-		v -= kingMiddlegameBlack[blackKingIdx]
+		v += kingMiddlegame[63-whiteKingIdx]
+		v -= kingMiddlegameBlack[63-blackKingIdx]
 	}
-
 	return v * getColorMutliplier(board.Wtomove)
 
 }

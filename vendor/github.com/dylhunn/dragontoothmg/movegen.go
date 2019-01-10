@@ -545,6 +545,54 @@ func (b *Board) UnderDirectAttack(byBlack bool, origin uint8) bool {
 	return count >= 1
 }
 
+// GetAttackersForSquare
+func (b *Board) GetAttackersForSquare(byBlack bool, origin uint8) Bitboards {
+	allPieces := b.White.All | b.Black.All
+	var opponentPieces *Bitboards
+	if byBlack {
+		opponentPieces = &(b.Black)
+	} else {
+		opponentPieces = &(b.White)
+	}
+	knight_attackers := knightMasks[origin] & opponentPieces.Knights
+
+	diag_candidates := magicBishopBlockerMasks[origin] & allPieces
+	diag_dbindex := (diag_candidates * magicNumberBishop[origin]) >> magicBishopShifts[origin]
+	origin_diag_rays := magicMovesBishop[origin][diag_dbindex]
+
+	bishop_attackers := origin_diag_rays & opponentPieces.Bishops
+	queen_attackers := origin_diag_rays & opponentPieces.Queens
+
+	ortho_candidates := magicRookBlockerMasks[origin] & allPieces
+	ortho_dbindex := (ortho_candidates * magicNumberRook[origin]) >> magicRookShifts[origin]
+	origin_ortho_rays := magicMovesRook[origin][ortho_dbindex]
+
+	rook_attackers := origin_ortho_rays & opponentPieces.Rooks
+	queen_attackers |= (origin_ortho_rays & opponentPieces.Queens)
+
+	king_attackers := kingMasks[origin] & opponentPieces.Kings
+
+	var pawn_attackers_mask uint64 = 0
+	if byBlack {
+		pawn_attackers_mask = (1 << (origin + 7)) & ^(onlyFile[7])
+		pawn_attackers_mask |= (1 << (origin + 9)) & ^(onlyFile[0])
+	} else {
+		if origin-7 >= 0 {
+			pawn_attackers_mask = (1 << (origin - 7)) & ^(onlyFile[0])
+		}
+		if origin-9 >= 0 {
+			pawn_attackers_mask |= (1 << (origin - 9)) & ^(onlyFile[7])
+		}
+	}
+	pawn_attackers_mask &= opponentPieces.Pawns
+	return Bitboards{Pawns: pawn_attackers_mask,
+		Bishops: bishop_attackers,
+		Knights: knight_attackers,
+		Rooks:   rook_attackers,
+		Queens:  queen_attackers,
+		Kings:   king_attackers}
+}
+
 // Compute whether an individual square is under direct attack. Potentially expensive.
 // Can be asked to abort early, when a certain number of attacks are found.
 // The found number might exceed the abortion threshold, since attacks are grouped.
