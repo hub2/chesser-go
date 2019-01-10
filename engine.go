@@ -14,6 +14,7 @@ import (
 
 const MAXVALUE int = 100000
 const MINVALUE int = -100000
+const LMR_LIMIT = 6
 
 var pieceTypesnoking []int
 var pieceTypes []int
@@ -227,6 +228,8 @@ func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	return entry, nil
 }
 
+var maxDepth int
+
 func search(board *dt.Board, depth int) (float64, dt.Move) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
@@ -234,11 +237,14 @@ func search(board *dt.Board, depth int) (float64, dt.Move) {
 	valf := 0.0
 	transpositionTable = make(transpositionMapping, 5000000)
 	hashMoveTable = make([]dt.Move, 512)
+	maxDepth = depth
+
 	var bestMove dt.Move
 
 	for i := 1; i < depth; i++ {
 		t := time.Now()
 		moveList := board.GenerateLegalMoves()
+		sortMoves(moveList, board)
 
 		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		bestMove = bmv
@@ -279,10 +285,24 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 		return MAXVALUE
 	}
 	if dt.IsCapture(move, board) {
-		return 10
+		return 600
+	}
+	piece := move.Promote()
+	if piece != dt.Nothing {
+		return pieceVal[dt.Pawn] - pieceVal[int(piece)] + 500
 	}
 	return 1
 }
+func isInteresting(move dt.Move, board *dt.Board) bool {
+	unApply := board.Apply(move)
+	if board.OurKingInCheck() {
+		unApply()
+		return true
+	}
+	unApply()
+	return getMoveValue(move, board) >= 9
+}
+
 func sortMoves(moveList []dt.Move, board *dt.Board) {
 	tuples := make([]moveValue, len(moveList))
 
@@ -321,6 +341,20 @@ func isValidMove(move dt.Move, moveList []dt.Move) bool {
 	return false
 }
 
+func pickReduction(remainingDepth int, moveCount int) int {
+	if maxDepth-remainingDepth > 4 {
+		if moveCount > 20 {
+			return 4 * remainingDepth / 5
+		}
+		if moveCount > 10 {
+			return 2 * remainingDepth / 3
+		}
+		return remainingDepth / 3
+
+	}
+	return 0
+}
+
 func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
 	nodes++
 	alphaOriginal := alpha
@@ -350,13 +384,28 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	var bestMove dt.Move
 	var tpv []dt.Move
 	var bestTtpv []dt.Move
+	var v int
+	var ttpv []dt.Move
+	var unapplyFunc func()
 
 	sortMoves(moveList, board)
-	for _, currMove := range moveList {
-		unapplyFunc := board.Apply(currMove)
+	for moveCount, currMove := range moveList {
+		if isInteresting(currMove, board) {
+			unapplyFunc = board.Apply(currMove)
+			moveList := board.GenerateLegalMoves()
 
-		moveList := board.GenerateLegalMoves()
-		v, _, ttpv := negaMax(board, depth-1, -beta, -alpha, moveList)
+			v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+		} else {
+			unapplyFunc = board.Apply(currMove)
+			moveList := board.GenerateLegalMoves()
+
+			R := pickReduction(depth, moveCount)
+			v, _, ttpv = negaMax(board, depth-1-R, -beta, -alpha, moveList)
+			if -v > alpha {
+				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+			}
+		}
+
 		v = -v
 
 		v = max(alpha, v)
