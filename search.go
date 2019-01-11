@@ -13,6 +13,10 @@ import (
 func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
+	var outMoves string
+	var pv []dt.Move
+	var bestMove dt.Move
+
 	nodes = 0
 	valf := 0.0
 	transpositionTable = make(transpositionMapping, 5000000)
@@ -21,13 +25,10 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	killerTwoTable = make([]dt.Move, 512)
 	searching = true
 	maxDepth = depth
-	var outMoves string
-	var pv []dt.Move
+
 	if movetime != -1 {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
-
-	var bestMove dt.Move
 
 	for i := 1; i < depth; i++ {
 		deepestQuiescence = 0
@@ -80,9 +81,17 @@ func pickReduction(remainingDepth int, moveCount int) int {
 }
 
 func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
-	nodes++
+	var bestMove dt.Move
+	var tpv []dt.Move
+	var bestTtpv []dt.Move
+	var v int
+	var ttpv []dt.Move
+
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
+
+	nodes++
+
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
 		switch trEntry.flag {
 		case EXACT:
@@ -108,11 +117,6 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 
 	vMax := MINVALUE
-	var bestMove dt.Move
-	var tpv []dt.Move
-	var bestTtpv []dt.Move
-	var v int
-	var ttpv []dt.Move
 
 	sortMoves(moveList, board)
 	for moveCount, currMove := range moveList {
@@ -168,16 +172,17 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 }
 
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+	var val int
+	var bestTpv []dt.Move
+	var bestMove dt.Move
+
 	updateTimer()
 	if !searching {
 		return -evalBoard(board, nil), 0, []dt.Move{}
 	}
+
 	deepestQuiescence = min(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
-	var val int
-	//var unApplyFunc func()
-	var bestTpv []dt.Move
-	var bestMove dt.Move
 
 	if !isCheck {
 		val = evalBoard(board, nil)
@@ -188,10 +193,11 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 			alpha = val
 		}
 	}
+
+	moves := board.GenerateLegalMoves()
 	pq := make(PriorityQueue, 0, 40)
 	heap.Init(&pq)
 
-	moves := board.GenerateLegalMoves()
 	if isCheck {
 		if len(moves) == 0 {
 			return -MAXVALUE, 0, []dt.Move{}

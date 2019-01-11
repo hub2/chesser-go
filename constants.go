@@ -10,6 +10,8 @@ const MAXVALUE int = 100000
 const MINVALUE int = -100000
 const LMR_LIMIT = 6
 const DOUBLE_PAWNS_PENALTY = -15
+const ISOLATED_PAWNS_PENALTY = -20
+
 const SPACE_PER_FRONTSPAN = 1
 
 var TIMECHECK_FREQ int = 5000
@@ -53,6 +55,19 @@ var kingEndgameBlack []int
 
 var pieceVal []int
 var attackSquareVal []int
+
+var isolatedPawnTable = [8]uint64{
+	0x303030303030303, 0x707070707070707, 0xe0e0e0e0e0e0e0e, 0x1c1c1c1c1c1c1c1c,
+	0x3838383838383838, 0x7070707070707070, 0xe0e0e0e0e0e0e0e0, 0xc0c0c0c0c0c0c0c0,
+}
+
+var onlyFile = [8]uint64{
+	0x0101010101010101, 0x0202020202020202, 0x0404040404040404, 0x0808080808080808,
+	0x1010101010101010, 0x2020202020202020, 0x4040404040404040, 0x8080808080808080}
+
+var onlyRank = [8]uint64{
+	0xFF, 0xFF00, 0xFF0000, 0xFF000000,
+	0xFF00000000, 0xFF0000000000, 0xFF000000000000, 0xFF00000000000000}
 
 func init() {
 	pieceTypesnoking = []int{dt.Pawn, dt.Knight, dt.Bishop, dt.Rook, dt.Queen}

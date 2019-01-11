@@ -116,23 +116,38 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 
 	// TODO:
 	// Passed pawns
-	// Isolated pawns
 
-	// Double pawns
 	doublePawnsWhite := 0
 	doublePawnsBlack := 0
 
+	isolatedPawnsWhite := 0
+	isolatedPawnsBlack := 0
 	for i := 0; i < 8; i++ {
-		doublePawnsWhite += bits.OnesCount64(dt.OnlyFile[i] & board.White.Pawns)
-		doublePawnsBlack += bits.OnesCount64(dt.OnlyFile[i] & board.Black.Pawns)
+		// Double pawns
+		doublePawnsWhite += bits.OnesCount64(onlyFile[i] & board.White.Pawns)
+		doublePawnsBlack += bits.OnesCount64(onlyFile[i] & board.Black.Pawns)
 		if doublePawnsWhite > 1 {
 			doublePawnsWhite++
 		}
 		if doublePawnsBlack > 1 {
 			doublePawnsBlack++
 		}
+
+		// Isolated pawns
+		if board.White.Pawns&onlyFile[i] > 0 {
+			if board.White.Pawns & ^onlyFile[i] & isolatedPawnTable[i] == 0 {
+				isolatedPawnsWhite++
+			}
+		}
+		if board.Black.Pawns&onlyFile[i] > 0 {
+			if board.Black.Pawns & ^onlyFile[i] & isolatedPawnTable[i] == 0 {
+				isolatedPawnsBlack++
+			}
+		}
+
 	}
 	v += (doublePawnsWhite - doublePawnsBlack) * DOUBLE_PAWNS_PENALTY
+	v += (isolatedPawnsWhite - isolatedPawnsBlack) * ISOLATED_PAWNS_PENALTY
 
 	return v * getColorMutliplier(board.Wtomove)
 
@@ -154,11 +169,11 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 	if board.Wtomove {
 		ourBitboard = &board.White
 		theirBitboard = &board.Black
-		isTsqLastLine = toBitboard&dt.OnlyRank[7] != 0
+		isTsqLastLine = toBitboard&onlyRank[7] != 0
 	} else {
 		ourBitboard = &board.Black
 		theirBitboard = &board.White
-		isTsqLastLine = toBitboard&dt.OnlyRank[0] != 0
+		isTsqLastLine = toBitboard&onlyRank[0] != 0
 	}
 
 	ourPieceType, _ := dt.DeterminePieceType(ourBitboard, fromBitboard)
