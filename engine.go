@@ -16,6 +16,8 @@ import (
 const MAXVALUE int = 100000
 const MINVALUE int = -100000
 const LMR_LIMIT = 6
+const DOUBLE_PAWNS_PENALTY = -15
+const SPACE_PER_FRONTSPAN = 1
 
 var pieceTypesnoking []int
 var pieceTypes []int
@@ -476,14 +478,20 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 			return MINVALUE
 		}
 	}
-	v := 0
+	// Give bonus for having right to move
+	// This should help with comparing same positions
+	// but with us to move is probably better (if not zugzwang)
+	v := 1
 
+	// Count material
 	v += (bits.OnesCount64(board.White.Pawns) - bits.OnesCount64(board.Black.Pawns)) * pieceVal[dt.Pawn]
 	v += (bits.OnesCount64(board.White.Knights) - bits.OnesCount64(board.Black.Knights)) * pieceVal[dt.Knight]
 	v += (bits.OnesCount64(board.White.Bishops) - bits.OnesCount64(board.Black.Bishops)) * pieceVal[dt.Bishop]
 	v += (bits.OnesCount64(board.White.Rooks) - bits.OnesCount64(board.Black.Rooks)) * pieceVal[dt.Rook]
 	v += (bits.OnesCount64(board.White.Queens) - bits.OnesCount64(board.Black.Queens)) * pieceVal[dt.Queen]
 
+	// Piece square tables
+	// TODO: consider lerping between early and end game
 	tmp := board.White.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
@@ -560,6 +568,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	blackKing := board.Black.Kings
 	blackKingIdx := bits.TrailingZeros64(blackKing)
 
+	// TODO: instead of flag implement phases
 	if isEndgame {
 		v += kingEndgame[whiteKingIdx]
 		v -= kingEndgameBlack[blackKingIdx]
@@ -567,6 +576,30 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v += kingMiddlegame[whiteKingIdx]
 		v -= kingMiddlegameBlack[blackKingIdx]
 	}
+	// Space
+	// Counting rearfill
+	v += (bits.OnesCount64(nortFill(board.White.Pawns)) - bits.OnesCount64(soutFill(board.Black.Pawns))) * SPACE_PER_FRONTSPAN
+
+	// TODO:
+	// Passed pawns
+	// Isolated pawns
+
+	// Double pawns
+	doublePawnsWhite := 0
+	doublePawnsBlack := 0
+
+	for i := 0; i < 8; i++ {
+		doublePawnsWhite += bits.OnesCount64(dt.OnlyFile[i] & board.White.Pawns)
+		doublePawnsBlack += bits.OnesCount64(dt.OnlyFile[i] & board.Black.Pawns)
+		if doublePawnsWhite > 1 {
+			doublePawnsWhite++
+		}
+		if doublePawnsBlack > 1 {
+			doublePawnsBlack++
+		}
+	}
+	v += (doublePawnsWhite - doublePawnsBlack) * DOUBLE_PAWNS_PENALTY
+
 	return v * getColorMutliplier(board.Wtomove)
 
 }
@@ -751,4 +784,18 @@ func getColorMutliplier(color bool) int {
 		return 1
 	}
 	return -1
+}
+
+func nortFill(gen uint64) uint64 {
+	gen |= (gen << 8)
+	gen |= (gen << 16)
+	gen |= (gen << 32)
+	return gen
+}
+
+func soutFill(gen uint64) uint64 {
+	gen |= (gen >> 8)
+	gen |= (gen >> 16)
+	gen |= (gen >> 32)
+	return gen
 }
