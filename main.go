@@ -21,6 +21,8 @@ func main() {
 
 	board := dt.ParseFen(startingFen)
 	reader := bufio.NewReader(os.Stdin)
+	ourTime := -1
+	//oppTime := -1
 mainloop:
 	for {
 		if commandStack.Len() > 0 {
@@ -72,8 +74,10 @@ mainloop:
 			}
 		}
 		if strings.HasPrefix(input, "go") {
-			depth := 11
+			depth := 13
 			movetime := -1
+			wtime := -1
+			btime := -1
 			params := strings.Split(input, " ")
 			if len(params) > 1 {
 				i := 0
@@ -87,12 +91,41 @@ mainloop:
 						i++
 						movetime, _ = strconv.Atoi(params[i])
 					}
+					if param == "wtime" {
+						i++
+						wtime, _ = strconv.Atoi(params[i])
+					}
+					if param == "btime" {
+						i++
+						btime, _ = strconv.Atoi(params[i])
+					}
 					i++
 				}
 			}
+			if board.Wtomove {
+				ourTime = wtime
+			} else {
+				ourTime = btime
+			}
+			fmt.Fprintf(os.Stderr, "ourtime %d\n", ourTime)
+			if movetime == -1 && ourTime != -1 {
+				movetime = int(ourTime / 20.0)
+			}
+			fmt.Fprintf(os.Stderr, "movetime %d\n", movetime)
+
 			_, move := search(&board, depth, movetime)
 			fmt.Printf("bestmove %s\n", move.String())
 			fmt.Fprintf(os.Stderr, "bestmove %s\n", move.String())
+		}
+
+		if strings.HasPrefix(input, "time") {
+			params := strings.Split(input, " ")
+			ourTime, _ = strconv.Atoi(params[1])
+		}
+
+		if strings.HasPrefix(input, "otim") {
+			params := strings.Split(input, " ")
+			_, _ = strconv.Atoi(params[1])
 		}
 	}
 

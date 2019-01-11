@@ -228,7 +228,10 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	hashMoveTable = make([]dt.Move, 512)
 	killerOneTable = make([]dt.Move, 512)
 	killerTwoTable = make([]dt.Move, 512)
+	searching = true
 	maxDepth = depth
+	var outMoves string
+	var pv []dt.Move
 	if movetime != -1 {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
@@ -243,21 +246,31 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 
 		//fmt.Fprintf(os.Stderr, "depth %d\n", i)
 		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
-		bestMove = bmv
-
 		timeElapsed := time.Since(t)
 
-		valf = float64(val) / 100.0
-		pv := reverseMove(tpv)
-		outMoves := ""
-		for i, mv := range pv {
-			hashMoveTable[getHalfMoveCount(board)+i] = mv
-			outMoves += mv.String() + " "
+		// dont return not fully searched tree
+		// force check
+		timeCheckCounter = 1
+		updateTimer()
+		if !searching {
+			break
 		}
+		valf = float64(val) / 100.0
+		if bmv != 0 {
+			outMoves = ""
+			bestMove = bmv
+			pv = reverseMove(tpv)
+			for i, mv := range pv {
+				hashMoveTable[getHalfMoveCount(board)+i] = mv
+				outMoves += mv.String() + " "
+			}
+		} else {
+			searching = false
+		}
+
 		fmt.Printf("info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintf(os.Stderr, "info depth %d/%d score %.2f time %d nodes %d\n", i, depth-deepestQuiescence, valf, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintln(os.Stderr, outMoves)
-		//fmt.Println(outMoves)
 	}
 	return valf, bestMove
 }
