@@ -35,7 +35,6 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		//fmt.Fprintf(os.Stderr, "depth %d\n", i)
 		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		timeElapsed := time.Since(t)
 
@@ -85,17 +84,14 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
-		unApply := board.Apply(trEntry.move)
 		switch trEntry.flag {
 		case EXACT:
-			unApply()
 			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
 		case LOWERBOUND:
 			alpha = max(alpha, trEntry.value)
 		case UPPERBOUND:
 			beta = min(beta, trEntry.value)
 		}
-		unApply()
 		if alpha >= beta {
 			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
 		}
