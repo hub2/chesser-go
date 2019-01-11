@@ -316,16 +316,15 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	}
 	return 0
 }
-func isInteresting(move dt.Move, board *dt.Board) bool {
+func isInteresting(move dt.Move, board *dt.Board, newBoard *dt.Board) bool {
 	if board.OurKingInCheck() {
 		return true
 	}
-	unApply := board.Apply(move)
-	if board.OurKingInCheck() {
-		unApply()
+
+	if newBoard.OurKingInCheck() {
 		return true
 	}
-	unApply()
+
 	return getMoveValue(move, board) > 0
 }
 
@@ -422,10 +421,10 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	sortMoves(moveList, board)
 	for moveCount, currMove := range moveList {
 		boardCopy := *board
-		board.Apply(currMove)
+		board.ApplyNoFunc(currMove)
 		moveList := board.GenerateLegalMoves()
 
-		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy) {
+		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
 			v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
 		} else {
 			R := pickReduction(depth, moveCount)

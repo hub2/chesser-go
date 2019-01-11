@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	dt "github.com/dylhunn/dragontoothmg"
 )
@@ -29,12 +30,19 @@ func BenchmarkSearchDepth7(b *testing.B) {
 	for _, fen := range fens {
 		boards = append(boards, dt.ParseFen(fen))
 	}
+	allNodes := 0
+
 	b.ResetTimer()
+	t := time.Now()
 	for i := 0; i < b.N; i++ {
 		for _, board := range boards {
 			search(&board, 7, -1)
+			allNodes += nodes
 		}
 	}
+	elapsed := time.Since(t)
+	kps := float64(allNodes) / elapsed.Seconds()
+	b.Log(kps)
 }
 func BenchmarkSearchDepth10(b *testing.B) {
 	b.ReportAllocs()
