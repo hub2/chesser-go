@@ -74,7 +74,7 @@ mainloop:
 			}
 		}
 		if strings.HasPrefix(input, "go") {
-			depth := 13
+			depth := 20
 			movetime := -1
 			wtime := -1
 			btime := -1

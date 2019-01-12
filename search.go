@@ -177,6 +177,9 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	var val int
 	var bestTpv []dt.Move
 	var bestMove dt.Move
+	if board.Halfmoveclock >= 50 {
+		return 0, 0, []dt.Move{}
+	}
 
 	updateTimer()
 	if !searching {
