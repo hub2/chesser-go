@@ -115,9 +115,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		val, move, tpv := quiescenceSearch(board, alpha, beta, depth)
 		return val, move, tpv
 	}
-
-	vMax := MINVALUE
-
+	bSearchPv := true
 	sortMoves(moveList, board)
 	for moveCount, currMove := range moveList {
 		boardCopy := *board
@@ -125,24 +123,28 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		moveList := board.GenerateLegalMoves()
 
 		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
-			v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+			if bSearchPv {
+				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+			} else {
+				v, _, ttpv = negaMax(board, depth-1, -alpha-1, -alpha, moveList)
+				if -v > alpha {
+					v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+				}
+			}
 		} else {
 			R := pickReduction(depth, moveCount)
-			v, _, ttpv = negaMax(board, depth-1-R, -beta, -alpha, moveList)
+			v, _, ttpv = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
 			if -v > alpha {
 				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
 			}
 		}
 
 		v = -v
-
-		v = max(alpha, v)
-		alpha = v
-
-		if v > vMax {
-			vMax = v
+		if v > alpha {
+			alpha = v
 			bestMove = currMove
 			bestTtpv = ttpv
+			bSearchPv = false
 		}
 		*board = boardCopy
 
@@ -152,12 +154,12 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 	tpv = append(bestTtpv, bestMove)
 
-	trEntry.value = vMax
+	trEntry.value = alpha
 	trEntry.move = bestMove
 	trEntry.depth = depth
-	if vMax <= alphaOriginal {
+	if alpha <= alphaOriginal {
 		trEntry.flag = UPPERBOUND
-	} else if vMax >= beta {
+	} else if alpha >= beta {
 		trEntry.flag = LOWERBOUND
 		if !dt.IsCapture(bestMove, board) && bestMove.Promote() == dt.Nothing {
 			addKiller(bestMove, getHalfMoveCount(board))
@@ -167,7 +169,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 	transpositionTable.put(board, trEntry)
 
-	return vMax, bestMove, tpv
+	return alpha, bestMove, tpv
 
 }
 

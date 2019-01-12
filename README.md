@@ -13,9 +13,12 @@ Simple alpha beta search engine written in GO
 * Captures by SEE
 * Promotions
 * Checks
+* Killer moves(2 tables)
 * ...
 
 ## Evaluation
 * Material
 * Piece square tables
 * Static exchange evaluation
+* Double Pawns
+* Isolated Pawns
