@@ -49,7 +49,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		idx := bits.TrailingZeros64(tmp)
 		v += bishops[idx]
 		bishopTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
-		mobility += bits.OnesCount64(bishopTargets)
+		mobility += bits.OnesCount64(bishopTargets) * BISHOP_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -58,7 +58,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		idx := bits.TrailingZeros64(tmp)
 		v -= bishopsBlack[idx]
 		bishopTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
-		mobility -= bits.OnesCount64(bishopTargets)
+		mobility -= bits.OnesCount64(bishopTargets) * BISHOP_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -85,7 +85,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		idx := bits.TrailingZeros64(tmp)
 		v += rooks[idx]
 		rookTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
-		mobility += bits.OnesCount64(rookTargets)
+		mobility += bits.OnesCount64(rookTargets) * ROOK_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -94,7 +94,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		idx := bits.TrailingZeros64(tmp)
 		v -= rooksBlack[idx]
 		rookTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
-		mobility -= bits.OnesCount64(rookTargets)
+		mobility -= bits.OnesCount64(rookTargets) * ROOK_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -104,7 +104,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v += queens[idx]
 		diagTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
 		orthoTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
-		mobility += bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)
+		mobility += bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)*QUEEN_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -114,7 +114,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v -= queensBlack[idx]
 		diagTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
 		orthoTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
-		mobility -= (bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets))
+		mobility -= (bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)) * QUEEN_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
