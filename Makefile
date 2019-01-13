@@ -1,3 +1,4 @@
+EXE = chesser-go
 all:
-	go build .
+	go build -o $(EXE) .
 
