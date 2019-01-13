@@ -15,14 +15,15 @@ package dragontoothmg
 
 // The board type, which uses little-endian rank-file mapping.
 type Board struct {
-	Wtomove       bool
-	enpassant     uint8 // square id (16-23 or 40-47) where en passant capture is possible
-	castlerights  uint8
-	Halfmoveclock uint8
-	Fullmoveno    uint16
-	White         Bitboards
-	Black         Bitboards
-	hash          uint64
+	Wtomove                  bool
+	enpassant                uint8 // square id (16-23 or 40-47) where en passant capture is possible
+	castlerights             uint8
+	Halfmoveclock            uint8
+	Fullmoveno               uint16
+	White                    Bitboards
+	Black                    Bitboards
+	hash                     uint64
+	PieceSquareMaterialValue uint32
 }
 
 // Return the Zobrist hash value for the board.
@@ -145,7 +146,7 @@ type Bitboards struct {
 // 3 bits: promotion
 
 // Move bitwise structure; internal implementation is private.
-type Move uint16
+type Move uint32
 
 func (m *Move) To() uint8 {
 	return uint8(*m & 0x3F)

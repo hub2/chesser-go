@@ -24,13 +24,13 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	killerOneTable = make([]dt.Move, 512)
 	killerTwoTable = make([]dt.Move, 512)
 	searching = true
-	maxDepth = depth
 
 	if movetime != -1 {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
 
 	for i := 1; i < depth; i++ {
+		maxDepth = i
 		deepestQuiescence = 0
 		t := time.Now()
 		moveList := board.GenerateLegalMoves()
@@ -46,7 +46,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		if !searching {
 			break
 		}
-		valf = float64(val) / 100.0
+		valf = float64(getColorMutliplier(board.Wtomove)*val) / 100.0
 		if bmv != 0 {
 			outMoves = ""
 			bestMove = bmv
@@ -67,7 +67,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 }
 
 func pickReduction(remainingDepth int, moveCount int) int {
-	if maxDepth-remainingDepth > 4 { // if we are at depth >=5
+	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
 		if moveCount > 20 {
 			return (4 * remainingDepth) / 5
 		}
@@ -170,14 +170,13 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	transpositionTable.put(board, trEntry)
 
 	return alpha, bestMove, tpv
-
 }
 
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
 	var val int
 	var bestTpv []dt.Move
 	var bestMove dt.Move
-	if board.Halfmoveclock >= 50 {
+	if board.Halfmoveclock >= 100 {
 		return 0, 0, []dt.Move{}
 	}
 
@@ -246,8 +245,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	}
 	if bestTpv != nil {
 		return alpha, bestMove, append(bestTpv, bestMove)
-	} else {
-		return alpha, 0, []dt.Move{}
 	}
+	return alpha, 0, []dt.Move{}
 
 }

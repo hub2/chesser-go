@@ -114,9 +114,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	// Counting rearfill
 	v += (bits.OnesCount64(nortFill(board.White.Pawns)) - bits.OnesCount64(soutFill(board.Black.Pawns))) * SPACE_PER_FRONTSPAN
 
-	// TODO:
-	// Passed pawns
-
+	// stacked pawns & Isolated pawns
 	doublePawnsWhite := 0
 	doublePawnsBlack := 0
 
@@ -240,8 +238,6 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 	}
 	if swaplist[0] < 0 {
 		return MINVALUE
-	} else {
-		return swaplist[0]
 	}
-
+	return swaplist[0]
 }

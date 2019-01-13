@@ -12,7 +12,6 @@ type moveValue struct {
 }
 
 func getMoveValue(move dt.Move, board *dt.Board) int {
-
 	if hashMoveTable[getHalfMoveCount(board)] == move {
 		return MAXVALUE
 	}

@@ -40,7 +40,11 @@ const (
 
 func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
-	t[h] = trEntry
+	entry, ok := t[h]
+
+	if !ok || entry.depth < trEntry.depth {
+		t[h] = trEntry
+	}
 }
 
 func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
