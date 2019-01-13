@@ -1,4 +1,6 @@
 EXE = chesser-go
 all:
-	go build -o $(EXE) .
+	mkdir -p src/
+	cp -r vendor/* src/
+	GOPATH=`pwd` go build -o $(EXE) .
 
