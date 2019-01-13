@@ -8,7 +8,7 @@ import (
 
 const MAXVALUE int = 100000
 const MINVALUE int = -100000
-const LMR_LIMIT = 5
+const LMR_LIMIT = 4
 const DOUBLE_PAWNS_PENALTY = -15
 const ISOLATED_PAWNS_PENALTY = -20
 
