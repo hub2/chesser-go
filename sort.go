@@ -40,7 +40,7 @@ func isInteresting(move dt.Move, board *dt.Board, newBoard *dt.Board) bool {
 		return true
 	}
 
-	return getMoveValue(move, board) > 10
+	return getMoveValue(move, board) > 0
 }
 
 func sortMoves(moveList []dt.Move, board *dt.Board) {
