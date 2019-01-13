@@ -12,6 +12,9 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 			return MINVALUE
 		}
 	}
+	allPieces := board.White.All | board.Black.All
+	whitePieces := board.White.All
+	blackPieces := board.Black.All
 	// Give bonus for having right to move
 	// This should help with comparing same positions
 	// but with us to move is probably better (if not zugzwang)
@@ -24,6 +27,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	v += (bits.OnesCount64(board.White.Rooks) - bits.OnesCount64(board.Black.Rooks)) * pieceVal[dt.Rook]
 	v += (bits.OnesCount64(board.White.Queens) - bits.OnesCount64(board.Black.Queens)) * pieceVal[dt.Queen]
 
+	mobility := 0
 	// Piece square tables
 	// TODO: consider lerping between early and end game
 	tmp := board.White.Pawns
@@ -44,6 +48,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v += bishops[idx]
+		bishopTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
+		mobility += bits.OnesCount64(bishopTargets)
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -51,6 +57,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v -= bishopsBlack[idx]
+		bishopTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
+		mobility -= bits.OnesCount64(bishopTargets)
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -58,6 +66,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v += knights[idx]
+		knightTargets := dt.KnightMasks[idx] & (^whitePieces)
+		mobility += bits.OnesCount64(knightTargets) * KNIGHT_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -65,6 +75,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v -= knightsBlack[idx]
+		knightTargets := dt.KnightMasks[idx] & (^blackPieces)
+		mobility -= bits.OnesCount64(knightTargets) * KNIGHT_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -72,6 +84,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v += rooks[idx]
+		rookTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
+		mobility += bits.OnesCount64(rookTargets)
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -79,6 +93,8 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v -= rooksBlack[idx]
+		rookTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
+		mobility -= bits.OnesCount64(rookTargets)
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -86,6 +102,9 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v += queens[idx]
+		diagTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
+		orthoTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
+		mobility += bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -93,6 +112,9 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		v -= queensBlack[idx]
+		diagTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
+		orthoTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^blackPieces)
+		mobility -= (bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets))
 		tmp &= ^(1 << uint(idx))
 	}
 
@@ -146,6 +168,10 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	}
 	v += (doublePawnsWhite - doublePawnsBlack) * DOUBLE_PAWNS_PENALTY
 	v += (isolatedPawnsWhite - isolatedPawnsBlack) * ISOLATED_PAWNS_PENALTY
+
+	// Mobility
+
+	v += mobility
 
 	return v * getColorMutliplier(board.Wtomove)
 
