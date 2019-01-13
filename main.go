@@ -53,8 +53,25 @@ mainloop:
 			board = dt.ParseFen(startingFen)
 			params := strings.SplitN(input, " ", 3)
 			if params[1] == "fen" {
-				fen := params[2]
-				board = dt.ParseFen(fen)
+				if strings.Contains(params[1], "moves") {
+					paramss := strings.Split(params[1], "moves")
+					fen := paramss[0]
+					moves := paramss[1]
+					board = dt.ParseFen(fen)
+					for _, mv := range strings.Split(moves, " ") {
+						parsedMove, err := dt.ParseMove(mv)
+						//fmt.Fprintf(os.Stderr, "[C] parsed move: %s\n", mv)
+
+						if err != nil {
+							panic(err)
+						}
+						board.Apply(parsedMove)
+					}
+				} else {
+					fen := params[2]
+					board = dt.ParseFen(fen)
+				}
+
 			} else if params[1] == "startpos" {
 				if len(params) > 2 {
 					k := strings.Split(params[2], " ")
