@@ -104,7 +104,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v += queens[idx]
 		diagTargets := dt.CalculateBishopMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
 		orthoTargets := dt.CalculateRookMoveBitboard(uint8(idx), allPieces) & (^whitePieces)
-		mobility += bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)*QUEEN_MOBILITY
+		mobility += (bits.OnesCount64(diagTargets) + bits.OnesCount64(orthoTargets)) * QUEEN_MOBILITY
 		tmp &= ^(1 << uint(idx))
 	}
 
