@@ -58,9 +58,8 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		} else {
 			searching = false
 		}
-
-		fmt.Printf("info depth %d score %.2f time %d nodes %d\n", i, valf, timeElapsed.Nanoseconds()/1000000, nodes)
-		fmt.Fprintf(os.Stderr, "info depth %d/%d score %.2f time %d nodes %d\n", i, depth-deepestQuiescence, valf, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Printf("info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Fprintf(os.Stderr, "info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintln(os.Stderr, outMoves)
 	}
 	return valf, bestMove
