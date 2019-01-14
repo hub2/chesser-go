@@ -24,6 +24,8 @@ type Board struct {
 	Black                    Bitboards
 	hash                     uint64
 	PieceSquareMaterialValue uint32
+	Last4Hashes              [4]uint64
+	LastMove                 uint8
 }
 
 // Return the Zobrist hash value for the board.
