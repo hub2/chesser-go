@@ -137,27 +137,33 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	v += numberOfPiecesAroundKingSafetyPoints
 
 	tmp = dt.KingMasks[whiteKingIdx]
+	kingSafetyAttacks := 0
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		_, pieces := board.CountAttacks(true, uint8(idx), 100000)
-		v -= bits.OnesCount64(pieces&board.Black.Queens) * QUEEN_ATTACK_SAFETY
-		v -= bits.OnesCount64(pieces&board.Black.Rooks) * ROOK_ATTACK_SAFETY
-		v -= bits.OnesCount64(pieces&board.Black.Bishops) * BISHOP_ATTACK_SAFETY
-		v -= bits.OnesCount64(pieces&board.Black.Knights) * KNIGHT_ATTACK_SAFETY
-		v -= bits.OnesCount64(pieces&board.Black.Pawns) * PAWN_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.Black.Queens) * QUEEN_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.Black.Rooks) * ROOK_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.Black.Bishops) * BISHOP_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.Black.Knights) * KNIGHT_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.Black.Pawns) * PAWN_ATTACK_SAFETY
 		tmp &= ^(1 << uint(idx))
 	}
+	v -= kingSafety[kingSafetyAttacks]
+
+	kingSafetyAttacks = 0
+
 	tmp = dt.KingMasks[blackKingIdx]
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
 		_, pieces := board.CountAttacks(false, uint8(idx), 100000)
-		v += bits.OnesCount64(pieces&board.White.Queens) * QUEEN_ATTACK_SAFETY
-		v += bits.OnesCount64(pieces&board.White.Rooks) * ROOK_ATTACK_SAFETY
-		v += bits.OnesCount64(pieces&board.White.Bishops) * BISHOP_ATTACK_SAFETY
-		v += bits.OnesCount64(pieces&board.White.Knights) * KNIGHT_ATTACK_SAFETY
-		v += bits.OnesCount64(pieces&board.White.Pawns) * PAWN_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.White.Queens) * QUEEN_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.White.Rooks) * ROOK_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.White.Bishops) * BISHOP_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.White.Knights) * KNIGHT_ATTACK_SAFETY
+		kingSafetyAttacks += bits.OnesCount64(pieces&board.White.Pawns) * PAWN_ATTACK_SAFETY
 		tmp &= ^(1 << uint(idx))
 	}
+	v += kingSafety[kingSafetyAttacks]
 
 	// Space
 	// Counting rearfill
