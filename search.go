@@ -120,17 +120,18 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		boardCopy := *board
 		board.ApplyNoFunc(currMove)
 		moveList := board.GenerateLegalMoves()
+		kingCheckDepthBonus := 0
 		if board.OurKingInCheck() {
-			depth++
+			kingCheckDepthBonus = 1
 		}
 
 		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
 			if bSearchPv {
-				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 			} else {
-				v, _, ttpv = negaMax(board, depth-1, -alpha-1, -alpha, moveList)
+				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
 				if -v > alpha {
-					v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+					v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 				}
 			}
 		} else {
