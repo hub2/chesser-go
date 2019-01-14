@@ -221,7 +221,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 		nodes++
 		mvP := heap.Pop(&pq).(*moveValPair)
 		copyBoard := *board
-		board.ApplyNoGoingBackBadHash(mvP.move)
+		board.ApplyNoFunc(mvP.move)
 
 		if !isCheck {
 			if board.OurKingInCheck() {
