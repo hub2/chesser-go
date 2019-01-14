@@ -120,6 +120,9 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		boardCopy := *board
 		board.ApplyNoFunc(currMove)
 		moveList := board.GenerateLegalMoves()
+		if board.OurKingInCheck() {
+			depth++
+		}
 
 		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
 			if bSearchPv {
