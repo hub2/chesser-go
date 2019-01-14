@@ -17,6 +17,8 @@ const ROOK_MOBILITY = 3
 const QUEEN_MOBILITY = 3
 const SPACE_PER_FRONTSPAN = 1
 
+const KING_SAFETY_SQUARE = 8
+
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
 var nodes int

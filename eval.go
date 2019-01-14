@@ -132,6 +132,10 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 		v += kingMiddlegame[whiteKingIdx]
 		v -= kingMiddlegameBlack[blackKingIdx]
 	}
+	// King Safety
+	numberOfPiecesAroundKingSafetyPoints := (bits.OnesCount64(dt.KingMasks[whiteKingIdx]&(whitePieces)) - bits.OnesCount64(dt.KingMasks[blackKingIdx]&(blackPieces))) * KING_SAFETY_SQUARE
+	v += numberOfPiecesAroundKingSafetyPoints
+
 	// Space
 	// Counting rearfill
 	v += (bits.OnesCount64(nortFill(board.White.Pawns)) - bits.OnesCount64(soutFill(board.Black.Pawns))) * SPACE_PER_FRONTSPAN

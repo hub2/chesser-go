@@ -236,6 +236,8 @@ var kingMasks = [64]uint64{
 	0x0203000000000000, 0x0507000000000000, 0x0a0e000000000000, 0x141c000000000000,
 	0x2838000000000000, 0x5070000000000000, 0xa0e0000000000000, 0x40c0000000000000}
 
+var KingMasks = kingMasks
+
 // The occupancy masks for a rook or bishop at each index.
 // This represents the locations the piece can slide to that don't block it;
 // thus, the edges of the board are not included.
