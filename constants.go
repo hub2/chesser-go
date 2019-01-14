@@ -19,6 +19,12 @@ const SPACE_PER_FRONTSPAN = 1
 
 const KING_SAFETY_SQUARE = 8
 
+const QUEEN_ATTACK_SAFETY = 6
+const ROOK_ATTACK_SAFETY = 5
+const BISHOP_ATTACK_SAFETY = 4
+const KNIGHT_ATTACK_SAFETY = 8
+const PAWN_ATTACK_SAFETY = 7
+
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
 var nodes int

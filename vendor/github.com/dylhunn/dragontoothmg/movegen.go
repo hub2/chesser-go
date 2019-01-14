@@ -595,6 +595,10 @@ func (b *Board) GetAttackersForSquare(byBlack bool, origin uint8) Bitboards {
 	return out
 }
 
+func (b *Board) CountAttacks(byBlack bool, origin uint8, abortEarly int) (int, uint64) {
+	return b.countAttacks(byBlack, origin, abortEarly)
+}
+
 // Compute whether an individual square is under direct attack. Potentially expensive.
 // Can be asked to abort early, when a certain number of attacks are found.
 // The found number might exceed the abortion threshold, since attacks are grouped.

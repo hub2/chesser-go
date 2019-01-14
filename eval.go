@@ -136,6 +136,29 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	numberOfPiecesAroundKingSafetyPoints := (bits.OnesCount64(dt.KingMasks[whiteKingIdx]&(board.White.Pawns)) - bits.OnesCount64(dt.KingMasks[blackKingIdx]&(board.Black.Pawns))) * KING_SAFETY_SQUARE
 	v += numberOfPiecesAroundKingSafetyPoints
 
+	tmp = dt.KingMasks[whiteKingIdx]
+	for tmp != 0 {
+		idx := bits.TrailingZeros64(tmp)
+		_, pieces := board.CountAttacks(true, uint8(idx), 100000)
+		v -= bits.OnesCount64(pieces&board.Black.Queens) * QUEEN_ATTACK_SAFETY
+		v -= bits.OnesCount64(pieces&board.Black.Rooks) * ROOK_ATTACK_SAFETY
+		v -= bits.OnesCount64(pieces&board.Black.Bishops) * BISHOP_ATTACK_SAFETY
+		v -= bits.OnesCount64(pieces&board.Black.Knights) * KNIGHT_ATTACK_SAFETY
+		v -= bits.OnesCount64(pieces&board.Black.Pawns) * PAWN_ATTACK_SAFETY
+		tmp &= ^(1 << uint(idx))
+	}
+	tmp = dt.KingMasks[blackKingIdx]
+	for tmp != 0 {
+		idx := bits.TrailingZeros64(tmp)
+		_, pieces := board.CountAttacks(false, uint8(idx), 100000)
+		v += bits.OnesCount64(pieces&board.White.Queens) * QUEEN_ATTACK_SAFETY
+		v += bits.OnesCount64(pieces&board.White.Rooks) * ROOK_ATTACK_SAFETY
+		v += bits.OnesCount64(pieces&board.White.Bishops) * BISHOP_ATTACK_SAFETY
+		v += bits.OnesCount64(pieces&board.White.Knights) * KNIGHT_ATTACK_SAFETY
+		v += bits.OnesCount64(pieces&board.White.Pawns) * PAWN_ATTACK_SAFETY
+		tmp &= ^(1 << uint(idx))
+	}
+
 	// Space
 	// Counting rearfill
 	v += (bits.OnesCount64(nortFill(board.White.Pawns)) - bits.OnesCount64(soutFill(board.Black.Pawns))) * SPACE_PER_FRONTSPAN
