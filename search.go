@@ -179,14 +179,13 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	if board.Halfmoveclock >= 100 {
 		return 0, 0, []dt.Move{}
 	}
-	if board.Halfmoveclock < 0 {
+	if board.Halfmoveclock > 1 {
 		// Check for 3fold
 		for i := 0; i < 4; i++ {
-			if board.Last4Hashes[i] == board.Hash {
+			if board.Last4Hashes[i] == board.Hash() {
 				return 0, 0, []dt.Move{}
 			}
 		}
-
 	}
 
 	updateTimer()

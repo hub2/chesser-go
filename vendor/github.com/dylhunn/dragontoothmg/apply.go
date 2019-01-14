@@ -143,8 +143,8 @@ func (b *Board) ApplyNoFunc(m Move) {
 	// the constant that represents the index into pieceSquareZobristC for the pawn of our color
 	var ourPiecesPawnZobristIndex int
 	var oppPiecesPawnZobristIndex int
-	b.Last4Hashes[b.lastMove] = b.hash
-	b.LastMove = (b.lastMove + 1) % 4
+	b.Last4Hashes[b.LastMove] = b.hash
+	b.LastMove = (b.LastMove + 1) % 4
 
 	if b.Wtomove {
 		ourBitboardPtr = &(b.White)
