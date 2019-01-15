@@ -42,7 +42,7 @@ func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
 	entry, ok := t[h]
 
-	if !ok || entry.depth < trEntry.depth {
+	if !ok || entry.depth <= trEntry.depth {
 		t[h] = trEntry
 	}
 }

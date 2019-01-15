@@ -36,7 +36,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		val, bmv, _ := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -50,7 +50,8 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		if bmv != 0 {
 			outMoves = ""
 			bestMove = bmv
-			pv = reverseMove(tpv)
+			//pv = reverseMove(tpv)
+			pv = recoverPv(board, bestMove)
 			for i, mv := range pv {
 				hashMoveTable[getHalfMoveCount(board)+i] = mv
 				outMoves += mv.String() + " "
@@ -63,6 +64,24 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		fmt.Fprintln(os.Stderr, outMoves)
 	}
 	return valf, bestMove
+}
+
+func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
+	pvArray := []dt.Move{move}
+	copyBoard := *board
+	board.ApplyNoFunc(move)
+	for {
+		entry, ok := transpositionTable.get(board)
+		moveList := board.GenerateLegalMoves()
+		if ok == nil && isValidMove(entry.move, moveList) {
+			pvArray = append(pvArray, entry.move)
+			board.ApplyNoFunc(entry.move)
+		} else {
+			break
+		}
+	}
+	*board = copyBoard
+	return pvArray
 }
 
 func pickReduction(remainingDepth int, moveCount int) int {
