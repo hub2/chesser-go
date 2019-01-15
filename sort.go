@@ -12,9 +12,9 @@ type moveValue struct {
 }
 
 func getMoveValue(move dt.Move, board *dt.Board) int {
-	// if hashMoveTable[getHalfMoveCount(board)] == move {
-	// 	return MAXVALUE
-	// }
+	if hashMoveTable[getHalfMoveCount(board)] == move {
+		return MAXVALUE
+	}
 	if dt.IsCapture(move, board) {
 		return getCaptureValue(board, move)
 	}
@@ -22,12 +22,12 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	if piece != dt.Nothing {
 		return pieceVal[dt.Pawn] - pieceVal[piece] + 500
 	}
-	// if killerOneTable[getHalfMoveCount(board)] == move {
-	// 	return 10
-	// }
-	// if killerTwoTable[getHalfMoveCount(board)] == move {
-	// 	return 8
-	// }
+	if killerOneTable[getHalfMoveCount(board)] == move {
+		return 10
+	}
+	if killerTwoTable[getHalfMoveCount(board)] == move {
+		return 8
+	}
 	return 0
 }
 

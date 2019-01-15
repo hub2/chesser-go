@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -184,8 +183,7 @@ func Work(board *dt.Board, depth, movetime, threads int) dt.Move {
 }
 
 func DoOne(board *dt.Board, depth, movetime int) {
-	runtime.LockOSThread()
+	//runtime.LockOSThread()
 	_, move := search(board, depth, movetime)
 	returnChannel <- move
-
 }

@@ -104,7 +104,7 @@ func BenchmarkSearchDepth12(b *testing.B) {
 	b.Log(fens[8])
 	t := time.Now()
 	b.ResetTimer()
-	Work(&boards[5], 8, -1, 1)
+	Work(&boards[5], 12, -1, 1)
 	//search(&boards[5], 10, -1)
 	b.StopTimer()
 

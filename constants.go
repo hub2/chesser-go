@@ -23,7 +23,6 @@ const KING_SAFETY_SQUARE = 8
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
 var nodes uint64
-var hits uint64
 var deepestQuiescence int
 var timeCheckCounter = TIMECHECK_FREQ
 var endTime = time.Now().AddDate(1000, 10, 10)

@@ -24,7 +24,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	if movetime != -1 {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
-
+	hits := 0
 	for i := 1; i < depth; i++ {
 		maxDepth = i
 		deepestQuiescence = 0
@@ -32,7 +32,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		val, bmv, tpv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList, &hits)
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -48,14 +48,16 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 			bestMove = bmv
 			pv = reverseMove(tpv)
 			for i, mv := range pv {
+				// if mv != 0{
 				hashMoveTable[getHalfMoveCount(board)+i] = mv
 				outMoves += mv.String() + " "
+				// }
 			}
 		} else {
 			searching = false
 		}
-		fmt.Printf("info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
-		fmt.Fprintf(os.Stderr, "info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
+		fmt.Printf("info depth %d score cp %d time %d nodes %d hits %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes, hits)
+		fmt.Fprintf(os.Stderr, "info depth %d score cp %d time %d nodes %d hits %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes, hits)
 		fmt.Fprintln(os.Stderr, outMoves)
 	}
 	return valf, bestMove
@@ -75,7 +77,8 @@ func pickReduction(remainingDepth int, moveCount int) int {
 	return 0
 }
 
-func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
+func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, hits *int) (int, dt.Move, []dt.Move) {
+	atomic.AddUint64(&nodes, 1)
 	var bestMove dt.Move
 	var tpv []dt.Move
 	var bestTtpv []dt.Move
@@ -86,7 +89,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	trEntry, err := transpositionTable.get(board)
 
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
-		atomic.AddUint64(&hits, 1)
+		*hits++
 		switch trEntry.flag {
 		case EXACT:
 			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
@@ -100,14 +103,13 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		}
 	}
 
-	atomic.AddUint64(&nodes, 1)
 	updateTimer()
 	if !searching {
 		return -evalBoard(board, nil), 0, []dt.Move{}
 	}
 
 	if depth == 0 || len(moveList) == 0 {
-		val, move, tpv := quiescenceSearch(board, alpha, beta, depth)
+		val, move, tpv := quiescenceSearch(board, alpha, beta, depth, moveList, hits)
 		return val, move, tpv
 	}
 	bSearchPv := true
@@ -123,18 +125,18 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 
 		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
 			if bSearchPv {
-				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList, hits)
 			} else {
-				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
+				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList, hits)
 				if -v > alpha {
-					v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+					v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList, hits)
 				}
 			}
 		} else {
 			R := pickReduction(depth, moveCount)
-			v, _, ttpv = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
+			v, _, ttpv = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, hits)
 			if -v > alpha {
-				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList, hits)
 			}
 		}
 
@@ -171,10 +173,29 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	return alpha, bestMove, tpv
 }
 
-func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+func quiescenceSearch(board *dt.Board, alpha, beta, depth int, moves []dt.Move, hits *int) (int, dt.Move, []dt.Move) {
 	var val int
 	var bestTpv []dt.Move
 	var bestMove dt.Move
+
+	alphaOriginal := alpha
+	trEntry, err := transpositionTable.get(board)
+
+	if err == nil && trEntry.depth >= -depth && isValidMove(trEntry.move, moves) {
+		*hits++
+		switch trEntry.flag {
+		case EXACT:
+			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
+		case LOWERBOUND:
+			alpha = max(alpha, trEntry.value)
+		case UPPERBOUND:
+			beta = min(beta, trEntry.value)
+		}
+		if alpha >= beta {
+			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
+		}
+	}
+
 	if board.Halfmoveclock >= 100 {
 		return 0, 0, []dt.Move{}
 	}
@@ -192,7 +213,6 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 		return -evalBoard(board, nil), 0, []dt.Move{}
 	}
 
-	deepestQuiescence = min(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
 
 	if !isCheck {
@@ -205,7 +225,6 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 		}
 	}
 
-	moves := board.GenerateLegalMoves()
 	pq := make(PriorityQueue, 0, 40)
 	heap.Init(&pq)
 
@@ -237,7 +256,8 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 			}
 		}
 
-		val, _, tpv := quiescenceSearch(board, -beta, -alpha, depth-1)
+		newMoves := board.GenerateLegalMoves()
+		val, _, tpv := quiescenceSearch(board, -beta, -alpha, depth-1, newMoves, hits)
 		val = -val
 		*board = copyBoard
 
@@ -250,6 +270,22 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 			bestMove = mvP.move
 		}
 	}
+
+	trEntry.value = alpha
+	trEntry.move = bestMove
+	trEntry.depth = -depth
+	if alpha <= alphaOriginal {
+		trEntry.flag = UPPERBOUND
+	} else if alpha >= beta {
+		trEntry.flag = LOWERBOUND
+		if !dt.IsCapture(bestMove, board) && bestMove.Promote() == dt.Nothing {
+			addKiller(bestMove, getHalfMoveCount(board))
+		}
+	} else {
+		trEntry.flag = EXACT
+	}
+	transpositionTable.put(board, trEntry)
+
 	if bestTpv != nil {
 		return alpha, bestMove, append(bestTpv, bestMove)
 	}
