@@ -68,13 +68,19 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 
 func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 	pvArray := []dt.Move{move}
+	antiRepeat := map[uint64]int{board.Hash(): 1}
 	copyBoard := *board
 	board.ApplyNoFunc(move)
 	for {
 		entry, ok := transpositionTable.get(board)
 		moveList := board.GenerateLegalMoves()
+		_, ok2 := antiRepeat[board.Hash()]
+		if ok2 {
+			break
+		}
 		if ok == nil && isValidMove(entry.move, moveList) {
 			pvArray = append(pvArray, entry.move)
+			antiRepeat[board.Hash()] = 1
 			board.ApplyNoFunc(entry.move)
 		} else {
 			break
