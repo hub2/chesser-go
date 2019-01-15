@@ -15,7 +15,9 @@ type transpositionEntry struct {
 	move  dt.Move
 	flag  transpositionFlag
 }
-type transpositionMapping sync.Map
+type transpositionMapping struct {
+	sync.Map
+}
 
 // transposition table for bookkeeping already evaluated positions
 var transpositionTable transpositionMapping
@@ -38,28 +40,23 @@ const (
 	UPPERBOUND
 )
 
-func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
+func (t *transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
-	entry, ok := t.Store()
+	entry, ok := t.Load(h)
 
-	if !ok || entry.depth < trEntry.depth {
-
-		t.Map[h] = trEntry
+	if !ok || entry.(transpositionEntry).depth < trEntry.depth {
+		t.Store(h, trEntry)
 	}
 }
 
-func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
+func (t *transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	h := board.Hash()
-
-	t.Mutex.RLock()
-	defer t.Mutex.RUnlock()
-
-	entry, ok := t.Map[h]
+	entry, ok := t.Load(h)
 
 	if !ok {
 		return transpositionEntry{}, errNoTranspositionEntry
 	}
-	return entry, nil
+	return entry.(transpositionEntry), nil
 }
 
 func addKiller(move dt.Move, depth int) {

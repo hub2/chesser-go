@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -134,7 +135,8 @@ mainloop:
 			}
 			fmt.Fprintf(os.Stderr, "movetime %d\n", movetime)
 
-			_, move := search(&board, depth, movetime)
+			//_, move := search(&board, depth, movetime)
+			move := Work(&board, depth, movetime, 1)
 			fmt.Printf("bestmove %s\n", move.String())
 			fmt.Fprintf(os.Stderr, "bestmove %s\n", move.String())
 		}
@@ -162,5 +164,28 @@ mainloop:
 	// 	// Unapply the move
 	// 	unapplyFunc()
 	// }
+
+}
+
+var returnChannel = make(chan dt.Move, 1000000)
+
+func Work(board *dt.Board, depth, movetime, threads int) dt.Move {
+	transpositionTable = transpositionMapping{}
+	hashMoveTable = make([]dt.Move, 512)
+	killerOneTable = make([]dt.Move, 512)
+	killerTwoTable = make([]dt.Move, 512)
+	nodes = 0
+	for t := 0; t < threads; t++ {
+		boardCopy := *board
+		go DoOne(&boardCopy, depth, movetime)
+	}
+	bestMove := <-returnChannel
+	return bestMove
+}
+
+func DoOne(board *dt.Board, depth, movetime int) {
+	runtime.LockOSThread()
+	_, move := search(board, depth, movetime)
+	returnChannel <- move
 
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sync/atomic"
 	"time"
 
 	dt "github.com/dylhunn/dragontoothmg"
@@ -17,12 +18,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	var pv []dt.Move
 	var bestMove dt.Move
 
-	nodes = 0
 	valf := 0.0
-	transpositionTable = make(transpositionMapping, 500000)
-	hashMoveTable = make([]dt.Move, 512)
-	killerOneTable = make([]dt.Move, 512)
-	killerTwoTable = make([]dt.Move, 512)
 	searching = true
 
 	if movetime != -1 {
@@ -89,9 +85,8 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
 
-	nodes++
-
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
+		atomic.AddUint64(&hits, 1)
 		switch trEntry.flag {
 		case EXACT:
 			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
@@ -105,6 +100,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		}
 	}
 
+	atomic.AddUint64(&nodes, 1)
 	updateTimer()
 	if !searching {
 		return -evalBoard(board, nil), 0, []dt.Move{}
@@ -229,7 +225,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	}
 
 	for pq.Len() > 0 {
-		nodes++
+		atomic.AddUint64(&nodes, 1)
 		mvP := heap.Pop(&pq).(*moveValPair)
 		copyBoard := *board
 		board.ApplyNoFunc(mvP.move)

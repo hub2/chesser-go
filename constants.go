@@ -15,13 +15,15 @@ const KNIGHT_MOBILITY = 6
 const BISHOP_MOBILITY = 4
 const ROOK_MOBILITY = 3
 const QUEEN_MOBILITY = 3
+
 const SPACE_PER_FRONTSPAN = 1
 
 const KING_SAFETY_SQUARE = 8
 
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
-var nodes int
+var nodes uint64
+var hits uint64
 var deepestQuiescence int
 var timeCheckCounter = TIMECHECK_FREQ
 var endTime = time.Now().AddDate(1000, 10, 10)
