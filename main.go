@@ -23,6 +23,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	ourTime := -1
 	//oppTime := -1
+
 mainloop:
 	for {
 		if commandStack.Len() > 0 {

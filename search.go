@@ -79,7 +79,7 @@ func pickReduction(remainingDepth int, moveCount int) int {
 	return 0
 }
 
-func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
+func (w *Worker) negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, allowedIDs int64) (int, dt.Move, []dt.Move) {
 	var bestMove dt.Move
 	var tpv []dt.Move
 	var bestTtpv []dt.Move
@@ -116,39 +116,48 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 	bSearchPv := true
 	sortMoves(moveList, board)
+	newID := allowedIDs & w.ID
+	// Master robi pierwszy ruch i oddelegowywuje reszte do watkow
+	// Master moze byc slavem dla swoich slaveow
 	for moveCount, currMove := range moveList {
-		boardCopy := *board
-		board.ApplyNoFunc(currMove)
-		moveList := board.GenerateLegalMoves()
+		if moveCount == 0 {
+			// else{
+			// 	daj oddeleguj robote
+			// 	master.join(thread)
+			// }
+			boardCopy := *board
+			board.ApplyNoFunc(currMove)
+			moveList := board.GenerateLegalMoves()
 
-		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
-			if bSearchPv {
-				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+			if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
+				if bSearchPv {
+					v, _, ttpv = w.negaMax(board, depth-1, -beta, -alpha, moveList, newID)
+				} else {
+					v, _, ttpv = w.negaMax(board, depth-1, -alpha-1, -alpha, moveList, newID)
+					if -v > alpha {
+						v, _, ttpv = w.negaMax(board, depth-1, -beta, -alpha, moveList, newID)
+					}
+				}
 			} else {
-				v, _, ttpv = negaMax(board, depth-1, -alpha-1, -alpha, moveList)
+				R := pickReduction(depth, moveCount)
+				v, _, ttpv = w.negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, newID)
 				if -v > alpha {
-					v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+					v, _, ttpv = w.negaMax(board, depth-1, -beta, -alpha, moveList, newID)
 				}
 			}
-		} else {
-			R := pickReduction(depth, moveCount)
-			v, _, ttpv = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
-			if -v > alpha {
-				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+
+			v = -v
+			if v > alpha {
+				alpha = v
+				bestMove = currMove
+				bestTtpv = ttpv
+				bSearchPv = false
 			}
-		}
+			*board = boardCopy
 
-		v = -v
-		if v > alpha {
-			alpha = v
-			bestMove = currMove
-			bestTtpv = ttpv
-			bSearchPv = false
-		}
-		*board = boardCopy
-
-		if alpha >= beta {
-			break
+			if alpha >= beta {
+				break
+			}
 		}
 	}
 	tpv = append(bestTtpv, bestMove)
