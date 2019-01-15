@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"sync"
 
 	dt "github.com/dylhunn/dragontoothmg"
 )
@@ -14,8 +15,7 @@ type transpositionEntry struct {
 	move  dt.Move
 	flag  transpositionFlag
 }
-
-type transpositionMapping map[uint64]transpositionEntry
+type transpositionMapping sync.Map
 
 // transposition table for bookkeeping already evaluated positions
 var transpositionTable transpositionMapping
@@ -40,16 +40,21 @@ const (
 
 func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
-	entry, ok := t[h]
+	entry, ok := t.Store()
 
 	if !ok || entry.depth < trEntry.depth {
-		t[h] = trEntry
+
+		t.Map[h] = trEntry
 	}
 }
 
 func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	h := board.Hash()
-	entry, ok := t[h]
+
+	t.Mutex.RLock()
+	defer t.Mutex.RUnlock()
+
+	entry, ok := t.Map[h]
 
 	if !ok {
 		return transpositionEntry{}, errNoTranspositionEntry
