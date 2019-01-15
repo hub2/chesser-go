@@ -36,7 +36,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		val, bmv, _ := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		val, bmv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -50,7 +50,6 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		if bmv != 0 {
 			outMoves = ""
 			bestMove = bmv
-			//pv = reverseMove(tpv)
 			pv = recoverPv(board, bestMove)
 			for i, mv := range pv {
 				hashMoveTable[getHalfMoveCount(board)+i] = mv
@@ -104,12 +103,9 @@ func pickReduction(remainingDepth int, moveCount int) int {
 	return 0
 }
 
-func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move, []dt.Move) {
+func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move) {
 	var bestMove dt.Move
-	var tpv []dt.Move
-	var bestTtpv []dt.Move
 	var v int
-	var ttpv []dt.Move
 
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
@@ -119,25 +115,25 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
 		switch trEntry.flag {
 		case EXACT:
-			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
+			return trEntry.value, trEntry.move
 		case LOWERBOUND:
 			alpha = max(alpha, trEntry.value)
 		case UPPERBOUND:
 			beta = min(beta, trEntry.value)
 		}
 		if alpha >= beta {
-			return trEntry.value, trEntry.move, []dt.Move{trEntry.move}
+			return trEntry.value, trEntry.move
 		}
 	}
 
 	updateTimer()
 	if !searching {
-		return -evalBoard(board, nil), 0, []dt.Move{}
+		return -evalBoard(board, nil), 0
 	}
 
 	if depth == 0 || len(moveList) == 0 {
-		val, move, tpv := quiescenceSearch(board, alpha, beta, depth)
-		return val, move, tpv
+		val, move := quiescenceSearch(board, alpha, beta, depth)
+		return val, move
 	}
 	bSearchPv := true
 	sortMoves(moveList, board)
@@ -152,18 +148,18 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 
 		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
 			if bSearchPv {
-				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 			} else {
-				v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
+				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
 				if -v > alpha {
-					v, _, ttpv = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 				}
 			}
 		} else {
 			R := pickReduction(depth, moveCount)
-			v, _, ttpv = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
+			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
 			if -v > alpha {
-				v, _, ttpv = negaMax(board, depth-1, -beta, -alpha, moveList)
+				v, _ = negaMax(board, depth-1, -beta, -alpha, moveList)
 			}
 		}
 
@@ -171,7 +167,6 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		if v > alpha {
 			alpha = v
 			bestMove = currMove
-			bestTtpv = ttpv
 			bSearchPv = false
 		}
 		*board = boardCopy
@@ -180,7 +175,6 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 			break
 		}
 	}
-	tpv = append(bestTtpv, bestMove)
 
 	trEntry.value = alpha
 	trEntry.move = bestMove
@@ -197,28 +191,27 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	}
 	transpositionTable.put(board, trEntry)
 
-	return alpha, bestMove, tpv
+	return alpha, bestMove
 }
 
-func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []dt.Move) {
+func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 	var val int
-	var bestTpv []dt.Move
 	var bestMove dt.Move
 	if board.Halfmoveclock >= 100 {
-		return 0, 0, []dt.Move{}
+		return 0, 0
 	}
 	if board.Halfmoveclock > 1 {
 		// Check for 3fold
 		for i := 0; i < 4; i++ {
 			if board.Last4Hashes[i] == board.Hash() {
-				return 0, 0, []dt.Move{}
+				return 0, 0
 			}
 		}
 	}
 
 	updateTimer()
 	if !searching {
-		return -evalBoard(board, nil), 0, []dt.Move{}
+		return -evalBoard(board, nil), 0
 	}
 
 	deepestQuiescence = min(depth, deepestQuiescence)
@@ -227,7 +220,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 	if !isCheck {
 		val = evalBoard(board, nil)
 		if val >= beta {
-			return val, 0, []dt.Move{}
+			return val, 0
 		}
 		if val > alpha {
 			alpha = val
@@ -240,7 +233,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 
 	if isCheck {
 		if len(moves) == 0 {
-			return -MAXVALUE, 0, []dt.Move{}
+			return -MAXVALUE, 0
 		}
 		for _, move := range moves {
 			heap.Push(&pq, &moveValPair{val: 0, move: move})
@@ -266,22 +259,18 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move, []
 			}
 		}
 
-		val, _, tpv := quiescenceSearch(board, -beta, -alpha, depth-1)
+		val, _ := quiescenceSearch(board, -beta, -alpha, depth-1)
 		val = -val
 		*board = copyBoard
 
 		if val >= beta {
-			return beta, mvP.move, append(tpv, mvP.move)
+			return beta, mvP.move
 		}
 		if val > alpha {
 			alpha = val
-			bestTpv = tpv
 			bestMove = mvP.move
 		}
 	}
-	if bestTpv != nil {
-		return alpha, bestMove, append(bestTpv, bestMove)
-	}
-	return alpha, 0, []dt.Move{}
+	return alpha, bestMove
 
 }
