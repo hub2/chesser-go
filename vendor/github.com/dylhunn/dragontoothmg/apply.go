@@ -529,6 +529,21 @@ func (b *Board) Apply(m Move) func() {
 	return unapply
 }
 
+func (b *Board) MakeNullMove() {
+	if !b.Wtomove {
+		b.Fullmoveno++
+	}
+	b.Wtomove = !b.Wtomove
+
+	b.Halfmoveclock++
+
+	b.Last4Hashes[b.LastMove] = b.hash
+	b.LastMove = (b.LastMove + 1) % 4
+
+	// no more enpassant
+	b.hash ^= uint64(b.enpassant)
+	b.enpassant = 0
+}
 func DeterminePieceType(ourBitboardPtr *Bitboards, squareMask uint64) (Piece, *uint64) {
 	return determinePieceType(ourBitboardPtr, squareMask)
 }

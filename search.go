@@ -36,7 +36,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		val, bmv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		val, bmv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList, true)
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -92,7 +92,7 @@ func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 func pickReduction(remainingDepth int, moveCount int) int {
 	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
 		if moveCount > 6 {
-			return min(remainingDepth-1, max(remainingDepth / 3, 1))
+			return min(remainingDepth-1, max(remainingDepth/3, 1))
 		}
 		return min(remainingDepth-1, 1)
 
@@ -100,9 +100,10 @@ func pickReduction(remainingDepth int, moveCount int) int {
 	return 0
 }
 
-func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (int, dt.Move) {
+func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, doNull bool) (int, dt.Move) {
 	var bestMove dt.Move
 	var v int
+	var inCheck bool
 
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
@@ -132,26 +133,40 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		val, move := quiescenceSearch(board, alpha, beta, depth)
 		return val, move
 	}
+	if board.OurKingInCheck() {
+		depth++
+		inCheck = true
+	}
+	if doNull && maxDepth != depth && depth >= 3 && !inCheck {
+		boardCopy := *board
+		board.MakeNullMove()
+		moveList := board.GenerateLegalMoves()
+
+		val, move := negaMax(board, depth-1-2, -beta, -beta+1, moveList, false)
+		val = -val
+
+		*board = boardCopy
+		if val >= beta {
+			return beta, move
+		}
+	}
+
 	bSearchPv := true
 	sortMoves(moveList, board)
 	for moveCount, currMove := range moveList {
 		boardCopy := *board
 		board.ApplyNoFunc(currMove)
 		moveList := board.GenerateLegalMoves()
-		kingCheckDepthBonus := 0
-		if board.OurKingInCheck() {
-			kingCheckDepthBonus = 1
-		}
 		R := 0
 		if !(moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board)) {
 			R = pickReduction(depth, moveCount)
 		}
 		if bSearchPv {
-			v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+			v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, true)
 		} else {
-			v, _ = negaMax(board, depth-1+kingCheckDepthBonus-R, -alpha-1, -alpha, moveList)
+			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, true)
 			if -v > alpha {
-				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+				v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, true)
 			}
 		}
 
