@@ -22,6 +22,7 @@ func main() {
 	board := dt.ParseFen(startingFen)
 	reader := bufio.NewReader(os.Stdin)
 	ourTime := -1
+	ourInc := 0
 	//oppTime := -1
 mainloop:
 	for {
@@ -95,10 +96,13 @@ mainloop:
 			}
 		}
 		if strings.HasPrefix(input, "go") {
-			depth := 20
+			depth := 99
 			movetime := -1
 			wtime := -1
 			btime := -1
+			winc := 0
+			binc := 0
+			ourInc = 0
 			params := strings.Split(input, " ")
 			if len(params) > 1 {
 				i := 0
@@ -120,17 +124,27 @@ mainloop:
 						i++
 						btime, _ = strconv.Atoi(params[i])
 					}
+					if param == "winc" {
+						i++
+						winc, _ = strconv.Atoi(params[i])
+					}
+					if param == "binc" {
+						i++
+						binc, _ = strconv.Atoi(params[i])
+					}
 					i++
 				}
 			}
 			if board.Wtomove {
 				ourTime = wtime
+				ourInc = winc
 			} else {
 				ourTime = btime
+				ourInc = binc
 			}
 			fmt.Fprintf(os.Stderr, "ourtime %d\n", ourTime)
 			if movetime == -1 && ourTime != -1 {
-				movetime = int(ourTime / 20.0)
+				movetime = int(ourTime/20.0) + ((3 * ourInc) / 4)
 			}
 			fmt.Fprintf(os.Stderr, "movetime %d\n", movetime)
 
