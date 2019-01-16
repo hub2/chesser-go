@@ -91,13 +91,10 @@ func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 
 func pickReduction(remainingDepth int, moveCount int) int {
 	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
-		if moveCount > 20 {
-			return (4 * remainingDepth) / 5
+		if moveCount > 6 {
+			return remainingDepth / 3
 		}
-		if moveCount > 10 {
-			return (2 * remainingDepth) / 3
-		}
-		return remainingDepth / 3
+		return min(remainingDepth-1, 1)
 
 	}
 	return 0
@@ -145,21 +142,16 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		if board.OurKingInCheck() {
 			kingCheckDepthBonus = 1
 		}
-
-		if moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board) {
-			if bSearchPv {
-				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
-			} else {
-				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
-				if -v > alpha {
-					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
-				}
-			}
+		R := 0
+		if !(moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board)) {
+			R = pickReduction(depth, moveCount)
+		}
+		if bSearchPv {
+			v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 		} else {
-			R := pickReduction(depth, moveCount)
-			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList)
+			v, _ = negaMax(board, depth-1+kingCheckDepthBonus-R, -alpha-1, -alpha, moveList)
 			if -v > alpha {
-				v, _ = negaMax(board, depth-1, -beta, -alpha, moveList)
+				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
 			}
 		}
 
