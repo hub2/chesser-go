@@ -104,7 +104,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 	var bestMove dt.Move
 	var v int
 	var inCheck bool
-
+	var ourPieces dt.Bitboards
 	alphaOriginal := alpha
 	trEntry, err := transpositionTable.get(board)
 
@@ -137,7 +137,13 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 		depth++
 		inCheck = true
 	}
-	if doNull && maxDepth != depth && depth >= 3 && !inCheck {
+	if board.Wtomove {
+		ourPieces = board.White
+	} else {
+		ourPieces = board.Black
+	}
+
+	if doNull && maxDepth != depth && depth >= 3 && !inCheck && (ourPieces.All^ourPieces.Pawns^ourPieces.Kings) > 0 {
 		boardCopy := *board
 		board.MakeNullMove()
 		moveList := board.GenerateLegalMoves()
