@@ -92,7 +92,7 @@ func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 func pickReduction(remainingDepth int, moveCount int) int {
 	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
 		if moveCount > 6 {
-			return remainingDepth / 3
+			return min(remainingDepth-1, max(remainingDepth / 3, 1))
 		}
 		return min(remainingDepth-1, 1)
 
