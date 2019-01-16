@@ -168,7 +168,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 			R = pickReduction(depth, moveCount)
 		}
 		if bSearchPv {
-			v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, true)
+			v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, false)
 		} else {
 			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, true)
 			if -v > alpha {
