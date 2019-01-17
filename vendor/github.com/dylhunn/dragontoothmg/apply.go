@@ -540,6 +540,8 @@ func (b *Board) MakeNullMove() {
 	b.Last4Hashes[b.LastMove] = b.hash
 	b.LastMove = (b.LastMove + 1) % 4
 
+	// Change turns
+	b.hash ^= whiteToMoveZobristC
 	// no more enpassant
 	b.hash ^= uint64(b.enpassant)
 	b.enpassant = 0

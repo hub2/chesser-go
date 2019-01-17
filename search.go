@@ -153,11 +153,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 
 		*board = boardCopy
 		if val >= beta {
-			trEntry.value = beta
-			trEntry.move = move
-			trEntry.depth = depth
-			trEntry.flag = LOWERBOUND
-			transpositionTable.put(board, trEntry)
+			// trEntry.value = beta
+			// trEntry.move = move
+			// trEntry.depth = depth
+			// trEntry.flag = LOWERBOUND
+			// transpositionTable.put(board, trEntry)
 			return beta, move
 		}
 	}
