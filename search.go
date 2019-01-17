@@ -37,13 +37,18 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		deepestQuiescence = 0
 		t := time.Now()
 		moveList := board.GenerateLegalMoves()
-		sortMoves(moveList, board)
 		if i > 1 {
 			alpha := lastIterationEval - windowSize
 			beta := lastIterationEval + windowSize
 			val, bmv = negaMax(board, i, alpha, beta, moveList)
-			if val <= alpha || val >= beta {
-				val, bmv = negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+			if val <= alpha {
+				alpha = math.MinInt32
+			}
+			if val >= beta {
+				beta = math.MaxInt32
+			}
+			if alpha == math.MinInt32 || beta == math.MaxInt32 {
+				val, bmv = negaMax(board, i, alpha, beta, moveList)
 			}
 		} else {
 			val, bmv = negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
@@ -149,7 +154,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 	for moveCount, currMove := range moveList {
 		boardCopy := *board
 		board.ApplyNoFunc(currMove)
-		moveList := board.GenerateLegalMoves()
+		moves := board.GenerateLegalMoves()
 		kingCheckDepthBonus := 0
 		if board.OurKingInCheck() {
 			kingCheckDepthBonus = 1
@@ -159,15 +164,15 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 			R = pickReduction(depth, moveCount)
 		}
 		if bSearchPv {
-			v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+			v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moves)
 		} else {
-			v, _ = negaMax(board, depth-1+kingCheckDepthBonus-R, -alpha-1, -alpha, moveList)
+			v, _ = negaMax(board, depth-1+kingCheckDepthBonus-R, -alpha-1, -alpha, moves)
 			if -v > alpha {
 				if R > 0 {
-					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
+					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moves)
 				}
 				if -v > alpha {
-					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moves)
 				}
 			}
 		}

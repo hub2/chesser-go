@@ -19,7 +19,7 @@ const SPACE_PER_FRONTSPAN = 1
 
 const KING_SAFETY_SQUARE = 8
 
-var windowSize int = 50
+var windowSize int = 40
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
 var nodes int
