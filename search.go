@@ -153,11 +153,11 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 
 		*board = boardCopy
 		if val >= beta {
-			// trEntry.value = beta
-			// trEntry.move = move
-			// trEntry.depth = depth
-			// trEntry.flag = LOWERBOUND
-			// transpositionTable.put(board, trEntry)
+			trEntry.value = beta
+			trEntry.move = move
+			trEntry.depth = depth
+			trEntry.flag = LOWERBOUND
+			transpositionTable.put(board, trEntry)
 			return beta, move
 		}
 	}
@@ -175,7 +175,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 		if bSearchPv {
 			v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, false)
 		} else {
-			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, false)
+			v, _ = negaMax(board, depth-1-R, -alpha-1, -alpha, moveList, true)
 			if -v > alpha {
 				v, _ = negaMax(board, depth-1, -beta, -alpha, moveList, true)
 			}
