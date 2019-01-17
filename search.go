@@ -16,6 +16,9 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	var outMoves string
 	var pv []dt.Move
 	var bestMove dt.Move
+	var lastIterationEval int
+	var val int
+	var bmv dt.Move
 
 	nodes = 0
 	valf := 0.0
@@ -35,8 +38,16 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		t := time.Now()
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
-
-		val, bmv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		if i > 1 {
+			alpha := lastIterationEval - windowSize
+			beta := lastIterationEval + windowSize
+			val, bmv = negaMax(board, i, alpha, beta, moveList)
+			if val <= alpha || val >= beta {
+				val, bmv = negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+			}
+		} else {
+			val, bmv = negaMax(board, i, math.MinInt32, math.MaxInt32, moveList)
+		}
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -58,6 +69,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		} else {
 			searching = false
 		}
+		lastIterationEval = val
 		fmt.Printf("info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintf(os.Stderr, "info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintln(os.Stderr, outMoves)
