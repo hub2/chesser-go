@@ -92,7 +92,7 @@ func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 func pickReduction(remainingDepth int, moveCount int) int {
 	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
 		if moveCount > 6 {
-			return min(remainingDepth-1, max(remainingDepth / 3, 1))
+			return min(remainingDepth-1, max(remainingDepth/3, 1))
 		}
 		return min(remainingDepth-1, 1)
 
@@ -151,7 +151,12 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move) (i
 		} else {
 			v, _ = negaMax(board, depth-1+kingCheckDepthBonus-R, -alpha-1, -alpha, moveList)
 			if -v > alpha {
-				v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+				if R > 0 {
+					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -alpha-1, -alpha, moveList)
+				}
+				if -v > alpha {
+					v, _ = negaMax(board, depth-1+kingCheckDepthBonus, -beta, -alpha, moveList)
+				}
 			}
 		}
 
