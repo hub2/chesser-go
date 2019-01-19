@@ -225,6 +225,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 	var val int
 	var bestMove dt.Move
+	var alphaOriginal int = alpha
 
 	updateTimer()
 	if !searching {
@@ -250,6 +251,10 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 		if val >= beta {
 			return val, 0
 		}
+		queenValue := pieceVal[dt.Queen]
+		if val < alpha-queenValue {
+			return alpha, 0
+		}
 		if val > alpha {
 			alpha = val
 		}
@@ -269,7 +274,10 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 	} else {
 		for _, move := range moves {
 			if dt.IsCapture(move, board) {
-				heap.Push(&pq, &moveValPair{val: getCaptureValue(board, move), move: move})
+				captureValue := getCaptureValue(board, move)
+				if val+captureValue+200 >= alphaOriginal {
+					heap.Push(&pq, &moveValPair{val: captureValue, move: move})
+				}
 			}
 		}
 	}
