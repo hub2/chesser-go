@@ -128,7 +128,17 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 	if !searching {
 		return -evalBoard(board, nil), 0
 	}
-
+	if board.Halfmoveclock >= 100 {
+		return 0, 0
+	}
+	if board.Halfmoveclock > 1 {
+		// Check for 3fold
+		for i := 0; i < 4; i++ {
+			if board.Last4Hashes[i] == board.Hash() {
+				return 0, 0
+			}
+		}
+	}
 	if depth == 0 || len(moveList) == 0 {
 		val, move := quiescenceSearch(board, alpha, beta, depth)
 		return val, move
@@ -215,6 +225,12 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 	var val int
 	var bestMove dt.Move
+	var alphaOriginal int = alpha
+
+	updateTimer()
+	if !searching {
+		return -evalBoard(board, nil), 0
+	}
 	if board.Halfmoveclock >= 100 {
 		return 0, 0
 	}
@@ -227,11 +243,6 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 		}
 	}
 
-	updateTimer()
-	if !searching {
-		return -evalBoard(board, nil), 0
-	}
-
 	deepestQuiescence = min(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
 
@@ -239,6 +250,10 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 		val = evalBoard(board, nil)
 		if val >= beta {
 			return val, 0
+		}
+		queenValue := pieceVal[dt.Queen]
+		if val < alpha-queenValue {
+			return alpha, 0
 		}
 		if val > alpha {
 			alpha = val
@@ -259,7 +274,10 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 	} else {
 		for _, move := range moves {
 			if dt.IsCapture(move, board) {
-				heap.Push(&pq, &moveValPair{val: getCaptureValue(board, move), move: move})
+				captureValue := getCaptureValue(board, move)
+				if val+captureValue+200 >= alphaOriginal {
+					heap.Push(&pq, &moveValPair{val: captureValue, move: move})
+				}
 			}
 		}
 	}
