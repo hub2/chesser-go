@@ -123,7 +123,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 
 	blackKing := board.Black.Kings
 	blackKingIdx := bits.TrailingZeros64(blackKing)
-
+	isEndgame := (board.Black.Queens | board.White.Queens) == 0
 	// TODO: instead of flag implement phases
 	if isEndgame {
 		v += kingEndgame[whiteKingIdx]
