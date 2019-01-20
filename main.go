@@ -144,7 +144,12 @@ mainloop:
 			}
 			fmt.Fprintf(os.Stderr, "ourtime %d\n", ourTime)
 			if movetime == -1 && ourTime != -1 {
-				movetime = int(ourTime/20.0) + ((3 * ourInc) / 4)
+				if movetime < 15 {
+					movetime = int(ourTime/20.0) - 50
+				} else {
+					movetime = int(ourTime/20.0) + ((3 * ourInc) / 4)
+				}
+
 			}
 			fmt.Fprintf(os.Stderr, "movetime %d\n", movetime)
 

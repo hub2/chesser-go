@@ -30,6 +30,9 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 	}
 
 	for i := 1; i < depth; i++ {
+		if time.Now().Add(time.Duration(lastTime) * time.Millisecond).After(endTime) {
+			break
+		}
 		maxDepth = i
 		deepestQuiescence = 0
 		t := time.Now()
@@ -58,6 +61,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		} else {
 			searching = false
 		}
+		lastTime = int(timeElapsed.Nanoseconds() / 1000000)
 		fmt.Printf("info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintf(os.Stderr, "info depth %d score cp %d time %d nodes %d\n", i, val, timeElapsed.Nanoseconds()/1000000, nodes)
 		fmt.Fprintln(os.Stderr, outMoves)

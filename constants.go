@@ -27,6 +27,7 @@ var timeCheckCounter = TIMECHECK_FREQ
 var endTime = time.Now().AddDate(1000, 10, 10)
 var searching = true
 var maxDepth int
+var lastTime int
 
 var pieceTypesnoking []int
 var pieceTypes []int
