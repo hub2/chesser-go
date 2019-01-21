@@ -113,7 +113,17 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 	trEntry, err := transpositionTable.get(board)
 
 	nodes++
-
+	if board.Halfmoveclock >= 100 {
+		return 0, 0
+	}
+	if board.Halfmoveclock > 1 {
+		// Check for 3fold
+		for i := 0; i < 4; i++ {
+			if board.Last4Hashes[i] == board.Hash() {
+				return 0, 0
+			}
+		}
+	}
 	if err == nil && trEntry.depth >= depth && isValidMove(trEntry.move, moveList) {
 		switch trEntry.flag {
 		case EXACT:
@@ -132,17 +142,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 	if !searching {
 		return -evalBoard(board, nil), 0
 	}
-	if board.Halfmoveclock >= 100 {
-		return 0, 0
-	}
-	if board.Halfmoveclock > 1 {
-		// Check for 3fold
-		for i := 0; i < 4; i++ {
-			if board.Last4Hashes[i] == board.Hash() {
-				return 0, 0
-			}
-		}
-	}
+
 	if depth == 0 || len(moveList) == 0 {
 		val, move := quiescenceSearch(board, alpha, beta, depth)
 		return val, move
