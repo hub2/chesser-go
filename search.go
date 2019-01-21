@@ -29,7 +29,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
 
-	for i := 1; i < depth; i++ {
+	for i := 1; i < depth; i += 2 {
 		if time.Now().Add(time.Duration(lastTime) * time.Millisecond).After(endTime) {
 			break
 		}
