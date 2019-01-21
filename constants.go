@@ -136,7 +136,7 @@ func init() {
 		-20, -10, -10, -10, -10, -10, -10, -20}
 
 	for i := range bishopsBlack {
-		bishopsBlack[i] += pieceVal[dt.Knight]
+		bishopsBlack[i] += pieceVal[dt.Bishop]
 	}
 	bishops = reverse(bishopsBlack)
 
@@ -149,7 +149,7 @@ func init() {
 		-5, 0, 0, 0, 0, 0, 0, -5,
 		0, 0, 0, 5, 5, 0, 0, 0}
 	for i := range rooksBlack {
-		rooksBlack[i] += pieceVal[dt.Knight]
+		rooksBlack[i] += pieceVal[dt.Rook]
 	}
 	rooks = reverse(rooksBlack)
 
@@ -163,7 +163,7 @@ func init() {
 		-20, -10, -10, -5, -5, -10, -10, -20}
 
 	for i := range queensBlack {
-		queensBlack[i] += pieceVal[dt.Knight]
+		queensBlack[i] += pieceVal[dt.Queen]
 	}
 	queens = reverse(queensBlack)
 
