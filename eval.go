@@ -18,7 +18,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	// Give bonus for having right to move
 	// This should help with comparing same positions
 	// but with us to move is probably better (if not zugzwang)
-	v := 1
+	v := 20
 
 	// Count material
 	v += (bits.OnesCount64(board.White.Pawns) - bits.OnesCount64(board.Black.Pawns)) * pieceVal[dt.Pawn]
