@@ -47,7 +47,23 @@ func IsCapture(m Move, b *Board) bool {
 	// Is it an en passant capture?
 	fromBitboard := (uint64(1) << m.From())
 	originIsPawn := fromBitboard&b.White.Pawns != 0 || fromBitboard&b.Black.Pawns != 0
-	return originIsPawn && (toBitboard&(uint64(1) << b.enpassant) != 0)
+	return originIsPawn && (toBitboard&(uint64(1)<<b.enpassant) != 0)
+}
+
+func abs(a int8) int8 {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+func IsCastle(m Move, board *Board) bool {
+	fromBitboard := (uint64(1) << m.From())
+	if board.Wtomove && board.White.Kings&fromBitboard > 0 {
+		return abs(int8(m.From())-int8(m.To())) > 1
+	} else if !board.Wtomove && board.Black.Kings&fromBitboard > 0 {
+		return abs(int8(m.From())-int8(m.To())) > 1
+	}
+	return false
 }
 
 // A testing-use function that ignores the error output

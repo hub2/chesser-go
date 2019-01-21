@@ -20,7 +20,10 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	}
 	piece := move.Promote()
 	if piece != dt.Nothing {
-		return pieceVal[dt.Pawn] - pieceVal[piece] + 500
+		if piece == dt.Queen {
+			return 11
+		}
+		return 6
 	}
 	if killerOneTable[getHalfMoveCount(board)] == move {
 		return 10
@@ -28,6 +31,10 @@ func getMoveValue(move dt.Move, board *dt.Board) int {
 	if killerTwoTable[getHalfMoveCount(board)] == move {
 		return 8
 	}
+	if dt.IsCastle(move, board) {
+		return 7
+	}
+
 	return 0
 }
 
