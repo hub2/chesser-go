@@ -76,6 +76,9 @@ var onlyRank = [8]uint64{
 	0xFF00000000, 0xFF0000000000, 0xFF000000000000, 0xFF00000000000000}
 
 func init() {
+	pieceVal = []int{0, 100, 320, 330, 500, 935, 0}
+
+	attackSquareVal = []int{0, 1, 4, 2, 2, 2, 0}
 	pieceTypesnoking = []int{dt.Pawn, dt.Knight, dt.Bishop, dt.Rook, dt.Queen}
 	pieceTypes = append(pieceTypesnoking, dt.King)
 
@@ -103,6 +106,10 @@ func init() {
 		5, 10, 10, -20, -20, 10, 10, 5,
 		0, 0, 0, 0, 0, 0, 0, 0}
 
+	for i := range pawnsBlack {
+		pawnsBlack[i] += pieceVal[dt.Pawn]
+	}
+
 	pawns = reverse(pawnsBlack)
 
 	knightsBlack = []int{-50, -40, -30, -30, -30, -30, -40, -50,
@@ -114,6 +121,9 @@ func init() {
 		-40, -20, 0, 5, 5, 0, -20, -40,
 		-50, -40, -30, -30, -30, -30, -40, -50}
 
+	for i := range knightsBlack {
+		knightsBlack[i] += pieceVal[dt.Knight]
+	}
 	knights = reverse(knightsBlack)
 
 	bishopsBlack = []int{-20, -10, -10, -10, -10, -10, -10, -20,
@@ -125,6 +135,9 @@ func init() {
 		-10, 5, 0, 0, 0, 0, 5, -10,
 		-20, -10, -10, -10, -10, -10, -10, -20}
 
+	for i := range bishopsBlack {
+		bishopsBlack[i] += pieceVal[dt.Knight]
+	}
 	bishops = reverse(bishopsBlack)
 
 	rooksBlack = []int{0, 0, 0, 0, 0, 0, 0, 0,
@@ -135,7 +148,9 @@ func init() {
 		-5, 0, 0, 0, 0, 0, 0, -5,
 		-5, 0, 0, 0, 0, 0, 0, -5,
 		0, 0, 0, 5, 5, 0, 0, 0}
-
+	for i := range rooksBlack {
+		rooksBlack[i] += pieceVal[dt.Knight]
+	}
 	rooks = reverse(rooksBlack)
 
 	queensBlack = []int{-20, -10, -10, -5, -5, -10, -10, -20,
@@ -147,6 +162,9 @@ func init() {
 		-10, 0, 5, 0, 0, 0, 0, -10,
 		-20, -10, -10, -5, -5, -10, -10, -20}
 
+	for i := range queensBlack {
+		queensBlack[i] += pieceVal[dt.Knight]
+	}
 	queens = reverse(queensBlack)
 
 	kingMiddlegameBlack = []int{-30, -40, -40, -50, -50, -40, -40, -30,
@@ -171,7 +189,4 @@ func init() {
 
 	kingEndgame = reverse(kingEndgameBlack)
 
-	pieceVal = []int{0, 100, 320, 330, 500, 935, 0}
-
-	attackSquareVal = []int{0, 1, 4, 2, 2, 2, 0}
 }
