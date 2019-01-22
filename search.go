@@ -19,7 +19,8 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 
 	nodes = 0
 	valf := 0.0
-	transpositionTable = make(transpositionMapping, 500000)
+	transpositionTable = make(transpositionMapping, getNextPrime(6000000))
+
 	hashMoveTable = make([]dt.Move, 512)
 	killerOneTable = make([]dt.Move, 512)
 	killerTwoTable = make([]dt.Move, 512)

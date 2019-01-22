@@ -13,9 +13,10 @@ type transpositionEntry struct {
 	depth int
 	move  dt.Move
 	flag  transpositionFlag
+	key   uint64
 }
 
-type transpositionMapping map[uint64]transpositionEntry
+type transpositionMapping []transpositionEntry
 
 // transposition table for bookkeeping already evaluated positions
 var transpositionTable transpositionMapping
@@ -40,19 +41,20 @@ const (
 
 func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
-	entry, ok := t[h]
+	idx := h % uint64(len(t))
+	entry := t[idx]
 
-	if !ok || entry.depth <= trEntry.depth {
-		t[h] = trEntry
+	if entry.depth <= trEntry.depth {
+		t[idx] = trEntry
 	}
 }
 
 func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	h := board.Hash()
-	entry, ok := t[h]
+	entry := t[h%uint64(len(t))]
 
-	if !ok {
-		return transpositionEntry{}, errNoTranspositionEntry
+	if entry.key != h {
+		return transpositionEntry{key: h}, errNoTranspositionEntry
 	}
 	return entry, nil
 }

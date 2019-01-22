@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/big"
 	"time"
 
 	dt "github.com/dylhunn/dragontoothmg"
@@ -80,4 +81,14 @@ func soutFill(gen uint64) uint64 {
 	gen |= (gen >> 16)
 	gen |= (gen >> 32)
 	return gen
+}
+
+func getNextPrime(num int) int {
+	for {
+		i := big.NewInt(int64(num))
+		if i.ProbablyPrime(15) {
+			return num
+		}
+		num++
+	}
 }
