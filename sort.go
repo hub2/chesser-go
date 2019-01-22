@@ -7,11 +7,11 @@ import (
 )
 
 type moveValue struct {
-	val  int
+	val  int16
 	move dt.Move
 }
 
-func getMoveValue(move dt.Move, board *dt.Board) int {
+func getMoveValue(move dt.Move, board *dt.Board) int16 {
 	if hashMoveTable[getHalfMoveCount(board)] == move {
 		return MAXVALUE
 	}

@@ -6,7 +6,7 @@ import (
 
 type moveValPair struct {
 	move dt.Move
-	val  int
+	val  int16
 
 	Index int
 }

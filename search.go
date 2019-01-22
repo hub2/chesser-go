@@ -10,7 +10,7 @@ import (
 	dt "github.com/dylhunn/dragontoothmg"
 )
 
-func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
+func search(board *dt.Board, depth int16, movetime int) (float64, dt.Move) {
 	// check if endgame and set appproproeirpoeporiylu
 	// isEndgame =...
 	var outMoves string
@@ -19,7 +19,11 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 
 	nodes = 0
 	valf := 0.0
-	transpositionTable = make(transpositionMapping, getNextPrime(6000000))
+	hashSize := 4000000
+	next := int(math.Pow(2, math.Ceil(math.Log(float64(hashSize))/math.Log(2))))
+	transpositionTableSize = uint64(next - 1)
+	fmt.Println(next)
+	transpositionTable = make(transpositionMapping, next)
 
 	hashMoveTable = make([]dt.Move, 512)
 	killerOneTable = make([]dt.Move, 512)
@@ -30,7 +34,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		endTime = time.Now().Add(time.Millisecond * time.Duration(movetime))
 	}
 
-	for i := 1; i < depth; i++ {
+	for i := int16(1); i < depth; i++ {
 		if time.Now().Add(time.Duration(lastTime) * time.Millisecond).After(endTime) {
 			break
 		}
@@ -40,7 +44,7 @@ func search(board *dt.Board, depth int, movetime int) (float64, dt.Move) {
 		moveList := board.GenerateLegalMoves()
 		sortMoves(moveList, board)
 
-		val, bmv := negaMax(board, i, math.MinInt32, math.MaxInt32, moveList, true)
+		val, bmv := negaMax(board, i, MINVALUE, MAXVALUE, moveList, true)
 		timeElapsed := time.Since(t)
 
 		// dont return not fully searched tree
@@ -94,20 +98,20 @@ func recoverPv(board *dt.Board, move dt.Move) []dt.Move {
 	return pvArray
 }
 
-func pickReduction(remainingDepth int, moveCount int) int {
+func pickReduction(remainingDepth int16, moveCount int) int16 {
 	if maxDepth-remainingDepth > 3 { // if we are at depth >=5
 		if moveCount > 6 {
-			return min(remainingDepth-1, max(remainingDepth/3, 1))
+			return min16(remainingDepth-1, max16(remainingDepth/3, 1))
 		}
-		return min(remainingDepth-1, 1)
+		return min16(remainingDepth-1, 1)
 
 	}
 	return 0
 }
 
-func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, doNull bool) (int, dt.Move) {
+func negaMax(board *dt.Board, depth int16, alpha, beta int16, moveList []dt.Move, doNull bool) (int16, dt.Move) {
 	var bestMove dt.Move
-	var v int
+	var v int16
 	var inCheck bool
 	var ourPieces dt.Bitboards
 	alphaOriginal := alpha
@@ -130,9 +134,9 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 		case EXACT:
 			return trEntry.value, trEntry.move
 		case LOWERBOUND:
-			alpha = max(alpha, trEntry.value)
+			alpha = max16(alpha, trEntry.value)
 		case UPPERBOUND:
-			beta = min(beta, trEntry.value)
+			beta = min16(beta, trEntry.value)
 		}
 		if alpha >= beta {
 			return trEntry.value, trEntry.move
@@ -183,7 +187,7 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 		boardCopy := *board
 		board.ApplyNoFunc(currMove)
 		moveList := board.GenerateLegalMoves()
-		R := 0
+		R := int16(0)
 		if !(moveCount < LMR_LIMIT || isInteresting(currMove, &boardCopy, board)) {
 			R = pickReduction(depth, moveCount)
 		}
@@ -223,14 +227,13 @@ func negaMax(board *dt.Board, depth int, alpha, beta int, moveList []dt.Move, do
 		trEntry.flag = EXACT
 	}
 	transpositionTable.put(board, trEntry)
-
 	return alpha, bestMove
 }
 
-func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
-	var val int
+func quiescenceSearch(board *dt.Board, alpha, beta, depth int16) (int16, dt.Move) {
+	var val int16
 	var bestMove dt.Move
-	var alphaOriginal int = alpha
+	var alphaOriginal int16 = alpha
 
 	updateTimer()
 	if !searching {
@@ -248,7 +251,7 @@ func quiescenceSearch(board *dt.Board, alpha, beta, depth int) (int, dt.Move) {
 		}
 	}
 
-	deepestQuiescence = min(depth, deepestQuiescence)
+	deepestQuiescence = min16(depth, deepestQuiescence)
 	isCheck := board.OurKingInCheck()
 
 	if !isCheck {

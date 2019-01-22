@@ -96,7 +96,7 @@ mainloop:
 			}
 		}
 		if strings.HasPrefix(input, "go") {
-			depth := 99
+			var depth int16 = 99
 			movetime := -1
 			wtime := -1
 			btime := -1
@@ -110,7 +110,8 @@ mainloop:
 					param := params[i]
 					if param == "depth" {
 						i++
-						depth, _ = strconv.Atoi(params[i])
+						k, _ := strconv.Atoi(params[i])
+						depth = int16(k)
 					}
 					if param == "movetime" {
 						i++

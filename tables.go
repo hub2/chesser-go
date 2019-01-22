@@ -6,11 +6,11 @@ import (
 	dt "github.com/dylhunn/dragontoothmg"
 )
 
-type transpositionFlag int
+type transpositionFlag uint16
 
 type transpositionEntry struct {
-	value int
-	depth int
+	value int16
+	depth int16
 	move  dt.Move
 	flag  transpositionFlag
 	key   uint64
@@ -41,19 +41,21 @@ const (
 
 func (t transpositionMapping) put(board *dt.Board, trEntry transpositionEntry) {
 	h := board.Hash()
-	idx := h % uint64(len(t))
+	idx := (h & transpositionTableSize)
 	entry := t[idx]
 
 	if entry.depth <= trEntry.depth {
+		trEntry.key = h ^ (uint64(trEntry.value)<<48 | uint64(trEntry.depth)<<32 | uint64(trEntry.move)<<16 | uint64(trEntry.flag))
 		t[idx] = trEntry
 	}
 }
 
 func (t transpositionMapping) get(board *dt.Board) (transpositionEntry, error) {
 	h := board.Hash()
-	entry := t[h%uint64(len(t))]
+	idx := (h & transpositionTableSize)
+	entry := t[idx]
 
-	if entry.key != h {
+	if entry.key != (h ^ (uint64(entry.value)<<48 | uint64(entry.depth)<<32 | uint64(entry.move)<<16 | uint64(entry.flag))) {
 		return transpositionEntry{key: h}, errNoTranspositionEntry
 	}
 	return entry, nil

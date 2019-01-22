@@ -44,6 +44,19 @@ func min(a, b int) int {
 	return b
 }
 
+func max16(a, b int16) int16 {
+	if a > b {
+		return a
+	}
+	return b
+}
+func min16(a, b int16) int16 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func isValidMove(move dt.Move, moveList []dt.Move) bool {
 	for _, mv := range moveList {
 		if move == mv {
@@ -62,7 +75,7 @@ func updateTimer() {
 	}
 }
 
-func getColorMutliplier(color bool) int {
+func getColorMutliplier(color bool) int16 {
 	if color {
 		return 1
 	}

@@ -6,8 +6,8 @@ import (
 	dt "github.com/dylhunn/dragontoothmg"
 )
 
-const MAXVALUE int = 100000
-const MINVALUE int = -100000
+const MAXVALUE int16 = 32767 - 7000
+const MINVALUE int16 = -32767 + 7000
 const LMR_LIMIT = 5
 const DOUBLE_PAWNS_PENALTY = -15
 const ISOLATED_PAWNS_PENALTY = -20
@@ -22,12 +22,13 @@ const KING_SAFETY_SQUARE = 8
 var TIMECHECK_FREQ int = 5000
 var isEndgame = false
 var nodes int
-var deepestQuiescence int
+var deepestQuiescence int16
 var timeCheckCounter = TIMECHECK_FREQ
 var endTime = time.Now().AddDate(1000, 10, 10)
 var searching = true
-var maxDepth int
+var maxDepth int16
 var lastTime int
+var transpositionTableSize uint64
 
 var pieceTypesnoking []int
 var pieceTypes []int
@@ -59,7 +60,7 @@ var kingMiddlegameBlack []int
 var kingEndgame []int
 var kingEndgameBlack []int
 
-var pieceVal []int
+var pieceVal []int16
 var attackSquareVal []int
 
 var isolatedPawnTable = [8]uint64{
@@ -171,7 +172,7 @@ func init() {
 
 	kingEndgame = reverse(kingEndgameBlack)
 
-	pieceVal = []int{0, 100, 320, 330, 500, 935, 0}
+	pieceVal = []int16{0, 100, 320, 330, 500, 935, 0}
 
 	attackSquareVal = []int{0, 1, 4, 2, 2, 2, 0}
 }

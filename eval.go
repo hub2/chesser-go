@@ -6,7 +6,7 @@ import (
 	dt "github.com/dylhunn/dragontoothmg"
 )
 
-func evalBoard(board *dt.Board, moveList []dt.Move) int {
+func evalBoard(board *dt.Board, moveList []dt.Move) int16 {
 	if board.OurKingInCheck() {
 		if moveList != nil && len(moveList) == 0 {
 			return MINVALUE
@@ -21,11 +21,11 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	v := 1
 
 	// Count material
-	v += (bits.OnesCount64(board.White.Pawns) - bits.OnesCount64(board.Black.Pawns)) * pieceVal[dt.Pawn]
-	v += (bits.OnesCount64(board.White.Knights) - bits.OnesCount64(board.Black.Knights)) * pieceVal[dt.Knight]
-	v += (bits.OnesCount64(board.White.Bishops) - bits.OnesCount64(board.Black.Bishops)) * pieceVal[dt.Bishop]
-	v += (bits.OnesCount64(board.White.Rooks) - bits.OnesCount64(board.Black.Rooks)) * pieceVal[dt.Rook]
-	v += (bits.OnesCount64(board.White.Queens) - bits.OnesCount64(board.Black.Queens)) * pieceVal[dt.Queen]
+	v += (bits.OnesCount64(board.White.Pawns) - bits.OnesCount64(board.Black.Pawns)) * int(pieceVal[dt.Pawn])
+	v += (bits.OnesCount64(board.White.Knights) - bits.OnesCount64(board.Black.Knights)) * int(pieceVal[dt.Knight])
+	v += (bits.OnesCount64(board.White.Bishops) - bits.OnesCount64(board.Black.Bishops)) * int(pieceVal[dt.Bishop])
+	v += (bits.OnesCount64(board.White.Rooks) - bits.OnesCount64(board.Black.Rooks)) * int(pieceVal[dt.Rook])
+	v += (bits.OnesCount64(board.White.Queens) - bits.OnesCount64(board.Black.Queens)) * int(pieceVal[dt.Queen])
 
 	mobility := 0
 	// Piece square tables
@@ -176,15 +176,14 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	// Mobility
 
 	v += mobility
-
-	return v * getColorMutliplier(board.Wtomove)
+	return int16(v) * getColorMutliplier(board.Wtomove)
 
 }
 
-func getCaptureValue(board *dt.Board, move dt.Move) int {
+func getCaptureValue(board *dt.Board, move dt.Move) int16 {
 	var ourBitboard *dt.Bitboards
 	var theirBitboard *dt.Bitboards
-	var theirVal int
+	var theirVal int16
 	var candidateMove dt.Move
 	var isTsqLastLine bool
 	ourColor := board.Wtomove
@@ -222,7 +221,7 @@ func getCaptureValue(board *dt.Board, move dt.Move) int {
 	boardCopy := *board
 	board.ApplyNoGoingBackBadHash(move)
 
-	swaplist := make([]int, 0, 10)
+	swaplist := make([]int16, 0, 10)
 	swaplist = append(swaplist, theirVal)
 
 	swapCount := 0
