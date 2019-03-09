@@ -30,6 +30,7 @@ func evalBoard(board *dt.Board, moveList []dt.Move) int {
 	mobility := 0
 	// Piece square tables
 	// TODO: consider lerping between early and end game
+    // this is really good idea
 	tmp := board.White.Pawns
 	for tmp != 0 {
 		idx := bits.TrailingZeros64(tmp)
