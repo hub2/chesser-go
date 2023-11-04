@@ -1,5 +1,5 @@
 # Chesser-GO
-Simple alpha beta search engine written in GO
+Simple [PVS](https://en.wikipedia.org/wiki/Principal_variation_search) search engine written in GO
 
 
 ## What works
